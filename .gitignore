@@ -62,6 +62,10 @@ Thumbs.db
 # Static files (generated)
 static/charts/
 static/analysis/
+static/newsletters/
+static/debug/
+static/summaries/
+static/multi_summaries/
 static/data/US/
 static/data/KOSPI/
 static/data/KOSDAQ/
@@ -85,12 +89,12 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
-.pytest_cache/ #   D a t a b a s e   b a c k u p s   a n d   e x p o r t s 
- 
- m i g r a t i o n _ b a c k u p _ * . j s o n 
- 
- b a c k u p _ * . j s o n 
- 
- t e s t _ e x p o r t . j s o n 
- 
- 
+.pytest_cache/
+
+# Database backups and exports
+migration_backup_*.json
+backup_*.json
+test_export.json
+
+# Uploads
+uploads/

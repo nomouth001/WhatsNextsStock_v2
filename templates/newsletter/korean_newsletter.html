@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}한국장 뉴스레터{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">📈 한국장 뉴스레터</h1>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('newsletter.korean_newsletter', timeframe='d') }}" 
+                       class="btn btn-outline-primary {% if timeframe == 'd' %}active{% endif %}">일봉</a>
+                    <a href="{{ url_for('newsletter.korean_newsletter', timeframe='w') }}" 
+                       class="btn btn-outline-primary {% if timeframe == 'w' %}active{% endif %}">주봉</a>
+                    <a href="{{ url_for('newsletter.korean_newsletter', timeframe='m') }}" 
+                       class="btn btn-outline-primary {% if timeframe == 'm' %}active{% endif %}">월봉</a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0">📊 시장 요약</h5>
+                                <small class="text-muted">{{ newsletter.generated_at }}</small>
+                            </div>
+                            
+                            {% if newsletter.summary %}
+                            <div class="row">
+                                {% if newsletter.summary is mapping %}
+                                    {% for category, count in newsletter.summary.items() %}
+                                    {% if count > 0 and category != 'generation_date' %}
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="card bg-light">
+                                            <div class="card-body text-center">
+                                                <h6 class="card-title text-muted">
+                                                    {% if category == 'total_stocks' %}전체 종목
+                                                    {% elif category == 'crossover_proximity_count' %}크로스오버 근접
+                                                    {% elif category == 'crossover_occurred_count' %}오늘 크로스오버
+                                                    {% elif category == 'recent_crossover_count' %}최근 크로스오버
+                                                    {% elif category == 'golden_cross_count' %}골든크로스
+                                                    {% elif category == 'dead_cross_count' %}데드크로스
+                                                    {% else %}{{ category }}
+                                                    {% endif %}
+                                                </h6>
+                                                <h3 class="text-primary mb-0">{{ count }}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i>
+                                            요약 정보를 불러올 수 없습니다.
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">📋 주식 분류 결과</h5>
+                    <div class="newsletter-content">
+                        {{ newsletter.html | safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.newsletter-content {
+    max-height: 800px;
+    overflow-y: auto;
+}
+
+.newsletter-content table {
+    font-size: 0.9em;
+}
+
+.newsletter-content th,
+.newsletter-content td {
+    padding: 8px 12px;
+}
+
+.importance-high {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+}
+
+.importance-medium {
+    background-color: #d1ecf1 !important;
+    border-left: 4px solid #17a2b8 !important;
+}
+
+.importance-low {
+    background-color: #d4edda !important;
+    border-left: 4px solid #28a745 !important;
+}
+</style>
+{% endblock %} 

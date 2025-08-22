@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block title %}구독자 관리{% endblock %}
+
+{% block head %}
+<style>
+  .admin-subscribers .table-responsive { display: block !important; overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 admin-subscribers">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-users-cog me-2"></i>구독자 관리</h4>
+    <button class="btn btn-primary" onclick="openCreateModal()"><i class="fas fa-user-plus me-1"></i>구독자 추가</button>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>이메일</th>
+              <th>사용자(연결 시)</th>
+              <th>활성</th>
+              <th>빈도</th>
+              <th>발송시간</th>
+              <th>옵션</th>
+              <th>토큰</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in items %}
+            <tr>
+              <td>{{ s.id }}</td>
+              <td>{{ s.email }}</td>
+              <td>{{ s.user.get_full_name() if s.user else '-' }}</td>
+              <td>
+                <span class="badge {{ 'bg-success' if s.is_active else 'bg-secondary' }}">{{ 'ON' if s.is_active else 'OFF' }}</span>
+              </td>
+              <td>{{ s.frequency }}</td>
+              <td>{{ s.send_time or '-' }}</td>
+              <td>
+                {% if s.include_charts %}<span class="badge bg-info">차트</span>{% endif %}
+                {% if s.include_summary %}<span class="badge bg-primary">요약</span>{% endif %}
+                {% if s.include_technical_analysis %}<span class="badge bg-warning text-dark">기술분석</span>{% endif %}
+              </td>
+              <td><code>{{ s.unsubscribe_token or '-' }}</code></td>
+              <td>
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleSub({{ s.id }})">토글</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="openEditModal({{ s.id }}, '{{ s.frequency }}', '{{ s.send_time }}', {{ 'true' if s.include_charts else 'false' }}, {{ 'true' if s.include_summary else 'false' }}, {{ 'true' if s.include_technical_analysis else 'false' }})">수정</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="regenToken({{ s.id }})">토큰 재발급</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 생성 모달 -->
+<div class="modal" tabindex="-1" id="createModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">구독자 추가</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <form id="createForm" onsubmit="return submitCreate(event)">
+          <div class="mb-3">
+            <label class="form-label">이메일</label>
+            <input type="email" class="form-control" name="email" required />
+          </div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label">빈도</label>
+              <select class="form-select" name="frequency">
+                <option value="daily">daily</option>
+                <option value="weekly">weekly</option>
+                <option value="monthly">monthly</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">발송시간(HH:MM:SS)</label>
+              <input type="text" class="form-control" name="send_time" value="09:00:00" />
+            </div>
+          </div>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="include_charts" id="incCharts" checked>
+            <label class="form-check-label" for="incCharts">차트 포함</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="include_summary" id="incSummary" checked>
+            <label class="form-check-label" for="incSummary">요약 포함</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="include_ta" id="incTA" checked>
+            <label class="form-check-label" for="incTA">기술분석 포함</label>
+          </div>
+          <div class="mt-3"><button class="btn btn-primary" type="submit">생성</button></div>
+        </form>
+        <div id="createResult" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal" tabindex="-1" id="editModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">구독 수정</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <form id="editForm" onsubmit="return submitEdit(event)">
+          <input type="hidden" name="sub_id" />
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label">빈도</label>
+              <select class="form-select" name="frequency">
+                <option value="daily">daily</option>
+                <option value="weekly">weekly</option>
+                <option value="monthly">monthly</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">발송시간(HH:MM:SS)</label>
+              <input type="text" class="form-control" name="send_time" />
+            </div>
+          </div>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="include_charts" id="editIncCharts">
+            <label class="form-check-label" for="editIncCharts">차트 포함</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="include_summary" id="editIncSummary">
+            <label class="form-check-label" for="editIncSummary">요약 포함</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="include_ta" id="editIncTA">
+            <label class="form-check-label" for="editIncTA">기술분석 포함</label>
+          </div>
+          <div class="mt-3"><button class="btn btn-primary" type="submit">저장</button></div>
+        </form>
+        <div id="editResult" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openCreateModal(){ new bootstrap.Modal(document.getElementById('createModal')).show(); }
+function openEditModal(id, freq, time, incCharts, incSummary, incTA){
+  const m = new bootstrap.Modal(document.getElementById('editModal'));
+  const f = document.getElementById('editForm');
+  f.sub_id.value = id;
+  f.frequency.value = freq || 'daily';
+  f.send_time.value = time || '09:00:00';
+  f.include_charts.checked = !!incCharts;
+  f.include_summary.checked = !!incSummary;
+  f.include_ta.checked = !!incTA;
+  m.show();
+}
+function submitCreate(e){
+  e.preventDefault();
+  const f = e.target;
+  const payload = {
+    email: f.email.value,
+    frequency: f.frequency.value,
+    send_time: f.send_time.value,
+    include_charts: f.include_charts.checked,
+    include_summary: f.include_summary.checked,
+    include_technical_analysis: f.include_ta.checked
+  };
+  fetch('/admin/subscribers', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
+    .then(r=>r.json()).then(res=>{
+      const el = document.getElementById('createResult');
+      el.style.display='block';
+      el.innerText = res.success ? '생성 완료' : '실패: ' + (res.message||'');
+      if(res.success){ location.reload(); }
+    }).catch(err=>{
+      const el = document.getElementById('createResult'); el.style.display='block'; el.innerText = '오류: ' + err;
+    });
+  return false;
+}
+function submitEdit(e){
+  e.preventDefault();
+  const f = e.target;
+  const id = Number(f.sub_id.value);
+  const payload = {
+    frequency: f.frequency.value,
+    send_time: f.send_time.value,
+    include_charts: f.include_charts.checked,
+    include_summary: f.include_summary.checked,
+    include_technical_analysis: f.include_ta.checked
+  };
+  fetch(`/admin/subscribers/${id}/update`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
+    .then(r=>r.json()).then(res=>{
+      const el = document.getElementById('editResult');
+      el.style.display='block';
+      el.innerText = res.success ? '저장 완료' : '실패: ' + (res.message||'');
+      if(res.success){ location.reload(); }
+    }).catch(err=>{
+      const el = document.getElementById('editResult'); el.style.display='block'; el.innerText = '오류: ' + err;
+    });
+  return false;
+}
+function toggleSub(id){
+  fetch(`/admin/subscribers/${id}/toggle`, {method:'POST'}).then(r=>r.json()).then(()=>location.reload());
+}
+function regenToken(id){
+  fetch(`/admin/subscribers/${id}/regenerate_token`, {method:'POST'}).then(r=>r.json()).then(res=>{
+    if(res.success){ alert('토큰 재발급: ' + res.token); location.reload(); }
+  });
+}
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="mb-3">
+            <i class="fas fa-chart-line me-2"></i>주식 시장 현황
+        </h2>
+    </div>
+</div>
+
+<!-- 시장 토글 스위치 -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <span id="currentMarketLabel">{{ current_market_name }}</span>
+                        <span class="badge bg-secondary ms-2" id="stockCount">{{ stocks|length }}개 종목</span>
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <div class="btn-group" role="group" aria-label="Market selection">
+                            <a href="{{ url_for('user.home', market='us') }}" 
+                               class="btn btn-outline-success {% if current_market == 'us' %}active{% endif %}">
+                                미국 주식 (US)
+                            </a>
+                            <a href="{{ url_for('user.home', market='kospi') }}" 
+                               class="btn btn-outline-primary {% if current_market == 'kospi' %}active{% endif %}">
+                                KOSPI
+                            </a>
+                            <a href="{{ url_for('user.home', market='kosdaq') }}" 
+                               class="btn btn-outline-info {% if current_market == 'kosdaq' %}active{% endif %}">
+                                KOSDAQ
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 주식 리스트 -->
+<div class="stock-list">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header {% if current_market == 'us' %}bg-success{% elif current_market == 'kospi' %}bg-primary{% else %}bg-info{% endif %} text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>{{ current_market_name }}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if stocks %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>종목</th>
+                                    <th>현재가</th>
+                                    <th>등락률</th>
+                                    <th>거래량</th>
+                                    <th>EMA5</th>
+                                    <th>EMA20</th>
+                                    <th>EMA40</th>
+                                    <th>MACD</th>
+                                    <th>RSI</th>
+                                    <th>Stoch</th>
+                                    <th>일천</th>
+                                    <th>기준</th>
+                                    <th>거래량비율</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stock in stocks %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ stock.ticker }}</strong><br>
+                                        <small class="text-muted">{{ stock.name }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ "{:,.2f}".format(stock.close) if current_market == 'us' else "{:,}".format(stock.close|int) }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge {% if stock.change_percent >= 0 %}bg-danger{% else %}bg-primary{% endif %}">
+                                            {{ "+" if stock.change_percent >= 0 else "" }}{{ stock.change_percent }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <small>{{ "{:,}".format(stock.volume) }}</small>
+                                    </td>
+                                    {% if stock.indicators %}
+                                    <td class="text-end">{{ "{:,.2f}".format(stock.indicators.ema5) if current_market == 'us' else "{:,}".format(stock.indicators.ema5|int) }}</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(stock.indicators.ema20) if current_market == 'us' else "{:,}".format(stock.indicators.ema20|int) }}</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(stock.indicators.ema40) if current_market == 'us' else "{:,}".format(stock.indicators.ema40|int) }}</td>
+                                    <td class="text-end">
+                                        <small>
+                                            L: {{ stock.indicators.macd_line }}<br>
+                                            S: {{ stock.indicators.macd_signal }}
+                                        </small>
+                                    </td>
+                                    <td class="text-end">{{ stock.indicators.rsi }}</td>
+                                    <td class="text-end">
+                                        <small>
+                                            K: {{ stock.indicators.stoch_k }}<br>
+                                            D: {{ stock.indicators.stoch_d }}
+                                        </small>
+                                    </td>
+                                    <td class="text-end">{{ "{:,.2f}".format(stock.indicators.ichimoku_tenkan) if current_market == 'us' else "{:,}".format(stock.indicators.ichimoku_tenkan|int) }}</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(stock.indicators.ichimoku_kijun) if current_market == 'us' else "{:,}".format(stock.indicators.ichimoku_kijun|int) }}</td>
+                                    <td class="text-end">{{ stock.indicators.volume_ratio_5d }}</td>
+                                    {% else %}
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">등록된 {{ current_market_name }} 주식이 없습니다.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<style>
+/* 테이블 컬럼 너비 설정 */
+.table th:nth-child(1), .table td:nth-child(1) { width: 120px; }  /* 종목 */
+.table th:nth-child(2), .table td:nth-child(2) { width: 80px; }   /* 현재가 */
+.table th:nth-child(3), .table td:nth-child(3) { width: 80px; }   /* 등락률 */
+.table th:nth-child(4), .table td:nth-child(4) { width: 80px; }   /* 거래량 */
+.table th:nth-child(5), .table td:nth-child(5) { width: 80px; }   /* EMA5 */
+.table th:nth-child(6), .table td:nth-child(6) { width: 80px; }   /* EMA20 */
+.table th:nth-child(7), .table td:nth-child(7) { width: 80px; }   /* EMA40 */
+.table th:nth-child(8), .table td:nth-child(8) { width: 100px; }  /* MACD */
+.table th:nth-child(9), .table td:nth-child(9) { width: 60px; }   /* RSI */
+.table th:nth-child(10), .table td:nth-child(10) { width: 80px; } /* Stoch */
+.table th:nth-child(11), .table td:nth-child(11) { width: 80px; } /* 일천 */
+.table th:nth-child(12), .table td:nth-child(12) { width: 80px; } /* 기준 */
+.table th:nth-child(13), .table td:nth-child(13) { width: 80px; } /* 거래량비율 */
+
+.table th {
+    white-space: nowrap;
+    font-size: 0.9em;
+}
+
+.table td {
+    white-space: nowrap;
+    font-size: 0.85em;
+    vertical-align: middle;
+}
+
+.table td small {
+    font-size: 0.75em;
+    line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+    .table th, .table td {
+        font-size: 0.75em;
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .table td small {
+        font-size: 0.65em;
+    }
+}
+
+.stock-list {
+    transition: all 0.3s ease;
+}
+</style>
+{% endblock %} 

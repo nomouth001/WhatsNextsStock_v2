@@ -1,0 +1,14 @@
+{% extends 'email/base_email.html' %}
+{% block content %}
+  <h2 style="margin:0 0 12px 0;">{{ title or 'WhatsNextStock 뉴스레터' }}</h2>
+  <p style="margin:0 0 16px 0;">안녕하세요, {{ recipient_name or '구독자' }}님.</p>
+  <div style="margin: 12px 0;">
+    {{ body_html | safe }}
+  </div>
+  <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+  <p style="font-size:12px; color:#6b7280;">
+    이 메일은 WhatsNextStock에서 발송되었습니다. 수신을 원치 않으시면 <a href="{{ unsubscribe_url or '#' }}" style="color:#2563eb;">구독 해지</a>를 선택해 주세요.
+  </p>
+{% endblock %}
+
+

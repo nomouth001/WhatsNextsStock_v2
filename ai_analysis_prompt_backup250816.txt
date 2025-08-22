@@ -1,0 +1,11 @@
+밑에 제공되는 {ticker} ({company_name}) 종목의 OHLCV 데이터와 각종 기술적 지표들 (EMA5, EMA20, EMA40, MACD, 볼린저밴드, RSI, 스토캐스틱, 일목균형표, 5일 평균 거래량 대비 당일의 거래량, 20일 평균 거래량 대비 당일의 거래량, 40일 평균 거래량 대비 당일의 거래량)을 기반으로 차트를 분석 후, 스윙 투자자의 매수 및 매도 시점점에 대한 의견을 개진해라. 
+이 분석의 핵심내용을 세 문장으로 요약해 제일 첫머리에 **핵심 요약**의 제목아래 번호를 붙여 제시해라. 상세분석은 일봉-주봉-월봉의 순으로 배열해라.
+
+일봉 데이터 (최근 31일, OHLCV + 지표 포함):
+{daily_ohlcv_with_indicators_str}
+
+주봉 데이터 (최근 31주, OHLCV + 지표 포함):
+{weekly_ohlcv_with_indicators_str}
+
+월봉 데이터 (최근 31개월, OHLCV + 지표 포함):
+{monthly_ohlcv_with_indicators_str} 

@@ -1,0 +1,1491 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    /* 크로스오버 스타일 */
+    .golden-cross {
+        color: #FF8C00 !important; /* 주황색 */
+        font-weight: bold;
+    }
+    
+    .dead-cross {
+        color: #000000 !important; /* 검은색 */
+        font-weight: bold;
+    }
+    
+    .other-cross {
+        color: #666666 !important; /* 회색 */
+    }
+    
+    /* 툴팁 스타일 - Bootstrap 툴팁 사용 */
+    .crossover-tooltip {
+        cursor: help;
+    }
+    
+    /* Bootstrap 툴팁 커스터마이징 */
+    .tooltip-inner {
+        max-width: 300px !important;
+        text-align: left !important;
+        background-color: #2c3e50 !important;
+        color: white !important;
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+        padding: 10px 12px !important;
+        border-radius: 6px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    }
+    
+    .tooltip.bs-tooltip-top .tooltip-arrow::before {
+        border-top-color: #2c3e50 !important;
+    }
+    
+    .tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+        border-bottom-color: #2c3e50 !important;
+    }
+    
+    .tooltip.bs-tooltip-start .tooltip-arrow::before {
+        border-left-color: #2c3e50 !important;
+    }
+    
+    .tooltip.bs-tooltip-end .tooltip-arrow::before {
+        border-right-color: #2c3e50 !important;
+    }
+    
+    /* 정렬 가능한 헤더 스타일 */
+    .sortable-header {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        transition: background-color 0.2s;
+    }
+    
+    .sortable-header:hover {
+        background-color: #e9ecef !important;
+    }
+    
+    .sortable-header::after {
+        content: '↕';
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        color: #6c757d;
+    }
+    
+    .sortable-header.sort-asc::after {
+        content: '↑';
+        color: #007bff;
+    }
+    
+    .sortable-header.sort-desc::after {
+        content: '↓';
+        color: #007bff;
+    }
+    
+    /* 정렬 표시 */
+    .sortable-header.sort-asc,
+    .sortable-header.sort-desc {
+        background-color: #d4edda !important;
+    }
+    
+    /* 테이블 컬럼 너비 설정 - !important로 Bootstrap 스타일 덮어쓰기 */
+    .stock-table th:nth-child(1), .stock-table td:nth-child(1) { width: 50px !important; min-width: 50px !important; max-width: 50px !important; }  /* 체크박스 */
+    .stock-table th:nth-child(2), .stock-table td:nth-child(2) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* Ticker */
+    .stock-table th:nth-child(3), .stock-table td:nth-child(3) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; } /* Company name */
+    .stock-table th:nth-child(4), .stock-table td:nth-child(4) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* 종가 */
+    .stock-table th:nth-child(5), .stock-table td:nth-child(5) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* 등락률 */
+    .stock-table th:nth-child(6), .stock-table td:nth-child(6) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; } /* AI 분석 */
+    .stock-table th:nth-child(7), .stock-table td:nth-child(7) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; } /* MACD 크로스오버 */
+    .stock-table th:nth-child(8), .stock-table td:nth-child(8) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; } /* 최근의 크로스 오버 MACD */
+    .stock-table th:nth-child(9), .stock-table td:nth-child(9) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; } /* EMA 크로스오버 */
+    .stock-table th:nth-child(10), .stock-table td:nth-child(10) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; } /* 최근의 크로스 오버 이동평균선 */
+    .stock-table th:nth-child(11), .stock-table td:nth-child(11) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; } /* 종가-EMA 배열 */
+    .stock-table th:nth-child(12), .stock-table td:nth-child(12) { width: 200px !important; min-width: 200px !important; max-width: 200px !important; } /* 종가-EMA20 gap */
+    .stock-table th:nth-child(13), .stock-table td:nth-child(13) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; } /* 종가-EMA40 gap */
+    .stock-table th:nth-child(14), .stock-table td:nth-child(14) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* EMA5일 */
+    .stock-table th:nth-child(15), .stock-table td:nth-child(15) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* EMA20일 */
+    .stock-table th:nth-child(16), .stock-table td:nth-child(16) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* EMA40일 */
+    .stock-table th:nth-child(17), .stock-table td:nth-child(17) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* MACD */
+    .stock-table th:nth-child(18), .stock-table td:nth-child(18) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* MACD signal */
+    .stock-table th:nth-child(19), .stock-table td:nth-child(19) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* MACD histogram */
+    .stock-table th:nth-child(20), .stock-table td:nth-child(20) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* RSI */
+    .stock-table th:nth-child(21), .stock-table td:nth-child(21) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* stochastic %k */
+    .stock-table th:nth-child(22), .stock-table td:nth-child(22) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* stochastic %d */
+    .stock-table th:nth-child(23), .stock-table td:nth-child(23) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; } /* 5일간 평균 거래량 대비 */
+    .stock-table th:nth-child(24), .stock-table td:nth-child(24) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; } /* 20일간 평균 거래량 대비 */
+    .stock-table th:nth-child(25), .stock-table td:nth-child(25) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; } /* 40일간 평균 거래량 대비 */
+    
+    /* 테이블 셀 내용 줄바꿈 방지 */
+    .stock-table th, .stock-table td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 0;
+    }
+    
+    /* 테이블 가로 스크롤 */
+    .table-responsive {
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="mb-3">
+            <i class="fas fa-tachometer-alt me-2"></i>관리자 대시보드
+        </h2>
+    </div>
+</div>
+
+<div class="row mb-4 justify-content-start">
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_users }}</h4>
+                        <p class="mb-0">전체 사용자</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_kospi_stocks + total_kosdaq_stocks }}</h4>
+                        <p class="mb-0">한국 주식</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-flag fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_us_stocks }}</h4>
+                        <p class="mb-0">미국 주식</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-dollar-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 시장 요약 정보 섹션 -->
+{% if market_summary %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>{{ current_market_name }} 시장 요약 정보
+                    <small class="text-muted ms-2">({{ market_summary.generated_at }})</small>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-primary mb-1">{{ market_summary.total_stocks }}</h3>
+                            <p class="text-muted mb-0">전체 종목</p>
+                        </div>
+                    </div>
+                    <!--
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-warning mb-1">{{ market_summary.crossover_proximity_count }}</h3>
+                            <p class="text-muted mb-0">크로스오버 근접</p>
+                        </div>
+                    </div>
+                    -->
+                    <!--
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-success mb-1">{{ market_summary.crossover_occurred_count }}</h3>
+                            <p class="text-muted mb-0">오늘 크로스오버</p>
+                        </div>
+                    </div>
+                    -->
+                    <!--
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-info mb-1">{{ market_summary.recent_crossover_count }}</h3>
+                            <p class="text-muted mb-0">최근 크로스오버</p>
+                        </div>
+                    </div>
+                    -->
+                </div>
+                <!--
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-danger mb-1">{{ market_summary.golden_cross_count }}</h3>
+                            <p class="text-muted mb-0">골드크로스</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-secondary mb-1">{{ market_summary.dead_cross_count }}</h3>
+                            <p class="text-muted mb-0">데드크로스</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-success mb-1">{{ market_summary.ema_array_perfect_rise }}</h3>
+                            <p class="text-muted mb-0">완벽 상승 배열</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-danger mb-1">{{ market_summary.ema_array_perfect_fall }}</h3>
+                            <p class="text-muted mb-0">완벽 하락 배열</p>
+                        </div>
+                    </div>
+                </div>
+                -->
+                <!-- 다중 조건 카운트(일봉, 현재 시장) -->
+                {% if multi_condition_counts %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="row g-3">
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">정배열 · MACD 데드 ≤3일</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('uptrend_macd_dead_cross_within_3d', 0) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">정배열 · EMA 데드1 근접</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('uptrend_ema_dead1_proximity', 0) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">정배열 · EMA 데드1 오늘</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('uptrend_ema_dead1_today', 0) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">정배열 · EMA 데드1 ≤3일</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('uptrend_ema_dead1_within_3d', 0) }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">역배열 · MACD 골드 ≤3일</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('downtrend_macd_golden_cross_within_3d', 0) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">역배열 · EMA 골드1 근접</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('downtrend_ema_golden1_proximity', 0) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">역배열 · EMA 골드1 오늘</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('downtrend_ema_golden1_today', 0) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="text-muted small">역배열 · EMA 골드 ≤3일</div>
+                                    <h3 class="mb-0">{{ multi_condition_counts.get('downtrend_ema_golden_within_3d', 0) }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <!-- 새로운 통합 필드들 추가 -->
+                <!--
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-success mb-1">{{ market_summary.strong_buy_count }}</h3>
+                            <p class="text-muted mb-0">강력 매수 신호</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-danger mb-1">{{ market_summary.strong_sell_count }}</h3>
+                            <p class="text-muted mb-0">강력 매도 신호</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-info mb-1">{{ market_summary.buy_signal_count }}</h3>
+                            <p class="text-muted mb-0">매수 신호</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-warning mb-1">{{ market_summary.sell_signal_count }}</h3>
+                            <p class="text-muted mb-0">매도 신호</p>
+                        </div>
+                    </div>
+                </div>
+                -->
+                <div class="row">
+                    <!--
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-success mb-1">{{ market_summary.watch_up_count }}</h3>
+                            <p class="text-muted mb-0">상승 관찰</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-danger mb-1">{{ market_summary.watch_down_count }}</h3>
+                            <p class="text-muted mb-0">하락 관찰</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-secondary mb-1">{{ market_summary.no_crossover_count }}</h3>
+                            <p class="text-muted mb-0">크로스오버 없음</p>
+                        </div>
+                    </div>
+                    -->
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-primary mb-1">{{ market_summary.generation_date }}</h3>
+                            <p class="text-muted mb-0">생성 시간</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-paper-plane me-2"></i>이메일 테스트 발송
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="emailTestForm" class="row g-3" onsubmit="return sendTestEmail(event)">
+                    <div class="col-md-4">
+                        <label class="form-label">수신자 이메일</label>
+                        <input type="email" class="form-control" name="to_email" placeholder="user@example.com" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">제목</label>
+                        <input type="text" class="form-control" name="subject" value="WhatsNextStock 테스트 발송" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">HTML 본문</label>
+                        <textarea class="form-control" name="html" rows="4" placeholder="<h3>테스트</h3><p>이메일 테스트입니다.</p>" required></textarea>
+                    </div>
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>테스트 발송
+                        </button>
+                    </div>
+                    <div class="col-12" id="emailTestResult" style="display:none;"></div>
+                </form>
+                <hr>
+                <form id="emailBulkForm" class="row g-3" onsubmit="return sendBulkEmail(event)">
+                    <div class="col-md-6">
+                        <label class="form-label">수신자(쉼표 구분)</label>
+                        <textarea class="form-control" name="emails" rows="3" placeholder="a@b.com, c@d.com" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">제목(벌크)</label>
+                        <input type="text" class="form-control" name="subject" value="WhatsNextStock 벌크 테스트" required>
+                        <label class="form-label mt-3">HTML 본문(벌크)</label>
+                        <textarea class="form-control" name="html" rows="3" placeholder="<h3>테스트</h3>" required></textarea>
+                    </div>
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-paper-plane me-2"></i>벌크 발송
+                        </button>
+                    </div>
+                    <div class="col-12" id="emailBulkResult" style="display:none;"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-database me-2"></i>데이터 관리
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="text-muted mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            모든 활성화된 주식의 최신 OHLCV 데이터를 갱신합니다. 시장 시간에 따라 전일 또는 당일 데이터를 적용합니다.
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button type="button" class="btn btn-warning btn-lg" id="refreshMarketDataBtn" onclick="refreshMarketData()">
+                            <i class="fas fa-sync-alt me-2"></i>주가 데이터 갱신
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="refreshStatus" class="mt-3" style="display: none;">
+                    <div class="progress mb-2">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                    </div>
+                    <div class="alert alert-info mb-0" id="refreshMessage">
+                        <i class="fas fa-spinner fa-spin me-2"></i>주가 데이터 갱신 중...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+	#emailMessagesCard .card-body,
+	#emailEventsCard .card-body { display: block !important; }
+	#emailMessagesCard .table-responsive,
+	#emailEventsCard .table-responsive { display: block !important; overflow-x: auto; }
+</style>
+
+<!-- 이메일 최근 발송/이벤트 하이라이트 -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card" id="emailMessagesCard">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-envelope-open-text me-2"></i>최근 이메일 발송(상위 20) — {{ email_messages|length }}건</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>To</th>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th>Sent At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if email_messages %}
+                                {% for m in email_messages %}
+                                <tr>
+                                    <td>{{ m.to }}</td>
+                                    <td>{{ m.subject }}</td>
+                                    <td>{{ m.status }}</td>
+                                    <td>{{ m.sent_at or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="4" class="text-center text-muted">데이터 없음</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card" id="emailEventsCard">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-stream me-2"></i>최근 이메일 이벤트(상위 20) — {{ email_events|length }}건</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>sg_event_id</th>
+                                <th>Occurred</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if email_events %}
+                                {% for e in email_events %}
+                                <tr>
+                                    <td>{{ e.event }}</td>
+                                    <td class="text-truncate" style="max-width:220px">{{ e.sg_event_id or '-' }}</td>
+                                    <td>{{ e.occurred_at or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="3" class="text-center text-muted">데이터 없음</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>주식 리스트 관리
+                </h5>
+                
+                <div class="d-flex align-items-center">
+                    <label for="marketSelect" class="form-label me-2 mb-0">시장 선택:</label>
+                    <div class="btn-group" role="group" aria-label="Market selection">
+                        <a href="{{ url_for('admin.home_with_market', market='us') }}" 
+                           class="btn btn-outline-success {% if current_market == 'us' %}active{% endif %}">
+                            미국 주식 (US)
+                        </a>
+                        <a href="{{ url_for('admin.home_with_market', market='kospi') }}" 
+                           class="btn btn-outline-primary {% if current_market == 'kospi' %}active{% endif %}">
+                            KOSPI
+                        </a>
+                        <a href="{{ url_for('admin.home_with_market', market='kosdaq') }}" 
+                           class="btn btn-outline-info {% if current_market == 'kosdaq' %}active{% endif %}">
+                            KOSDAQ
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#csvUploadModal">
+                            <i class="fas fa-file-csv me-2"></i>CSV 업로드
+                        </button>
+                        <button type="button" class="btn btn-success me-2" onclick="downloadStockList()">
+                            <i class="fas fa-download me-2"></i>다운로드
+                        </button>
+                        <!-- 신규: 화면 테이블 전체 CSV 다운로드 버튼 (2025-08-16) -->
+                        <button type="button" class="btn btn-outline-success me-2" onclick="downloadMarketTableCsv()">
+                            <i class="fas fa-file-csv me-2"></i>테이블 CSV 다운로드
+                        </button>
+                        <button type="button" class="btn btn-danger me-2" onclick="deleteSelectedStocks()" id="deleteBtn" disabled>
+                            <i class="fas fa-trash me-2"></i>선택 삭제
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearSorting()">
+                            <i class="fas fa-times me-2"></i>정렬 초기화
+                        </button>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span id="currentMarket" class="badge bg-success fs-6">미국 주식 (US)</span>
+                    </div>
+                </div>
+
+                <div class="stock-list">
+                    <h6 class="text-muted mb-3">{{ current_market_name }}</h6>
+                    {% if stocks %}
+                        <table class="table table-striped table-sm stock-table" style="width: 100vw; table-layout: auto;">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAllUs" onchange="toggleSelectAll('us')">
+                                    </th>
+                                    <th class="sortable-header" data-sort-type="ticker">Ticker</th>
+                                    <th class="sortable-header" data-sort-type="company">Company name</th>
+                                    <th class="sortable-header" data-sort-type="number">종가<br><small class="text-muted">as of: {{ display_date }}</small></th>
+                                    <th class="sortable-header" data-sort-type="percent">등락률%<br><small class="text-muted">as of: {{ display_date }}</small></th>
+                                    <th class="sortable-header" data-sort-type="text">AI 분석</th>
+                                    <th class="sortable-header" data-sort-type="number">중요도 점수</th>
+                                    <th class="sortable-header" data-sort-type="text">MACD 크로스오버</th>
+                                    <th class="sortable-header" data-sort-type="text">최근의 크로스 오버<br>MACD</th>
+                                    <th class="sortable-header" data-sort-type="text">EMA 크로스오버</th>
+                                    <th class="sortable-header" data-sort-type="text">최근의 크로스 오버<br>이동평균선</th>
+                                    <th class="sortable-header" data-sort-type="text">EMA 배열</th>
+                                    <th class="sortable-header" data-sort-type="percent">종가-EMA20 gap</th>
+                                    <th class="sortable-header" data-sort-type="percent">종가-EMA40 gap</th>
+                                    <th class="sortable-header" data-sort-type="number">EMA5일</th>
+                                    <th class="sortable-header" data-sort-type="number">EMA20일</th>
+                                    <th class="sortable-header" data-sort-type="number">EMA40일</th>
+                                    <th class="sortable-header" data-sort-type="number">MACD</th>
+                                    <th class="sortable-header" data-sort-type="number">MACD signal</th>
+                                    <th class="sortable-header" data-sort-type="number">MACD histogram</th>
+                                    <th class="sortable-header" data-sort-type="number">RSI</th>
+                                    <th class="sortable-header" data-sort-type="number">stochastic %k</th>
+                                    <th class="sortable-header" data-sort-type="number">stochastic %d</th>
+                                    <th class="sortable-header" data-sort-type="percent">5일 평균<br>거래량 대비</th>
+                                    <th class="sortable-header" data-sort-type="percent">20일 평균<br>거래량 대비</th>
+                                    <th class="sortable-header" data-sort-type="percent">40일 평균<br>거래량 대비</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stock in stocks %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="stock-checkbox us-checkbox" value="{{ stock.id }}" onchange="updateDeleteButton()">
+                                    </td>
+                                    <td>{{ stock.ticker }}</td>
+                                    <td data-bs-toggle="tooltip" data-bs-title="{{ stock.company_name }}">{{ stock.company_name }}</td>
+                                    <td>
+                                        {% if market_data.get(stock.ticker) %}
+                                            {{ "{:.2f}".format(market_data[stock.ticker].close) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {% set change = indicators_data[stock.ticker]['indicators'].get('change_percent', 0) %}
+                                            {% if change is not none %}
+                                                <span class="{% if change > 0 %}text-danger{% elif change < 0 %}text-primary{% endif %}">
+                                                    {{ "{:+.2f}%".format(change) }}
+                                                </span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="analyzeStock('{{ stock.ticker }}', '{{ current_market }}')"
+                                                title="AI 분석 실행">
+                                            <i class="fas fa-brain me-1"></i>분석
+                                        </button>
+                                    </td>
+                                    <td>
+                                        {% if importance_scores.get(stock.ticker) is not none %}
+                                            {% set score = importance_scores[stock.ticker] %}
+                                            {% if score >= 80 %}
+                                                <span class="badge bg-danger">{{ "%.1f"|format(score) }}</span>
+                                            {% elif score >= 60 %}
+                                                <span class="badge bg-warning">{{ "%.1f"|format(score) }}</span>
+                                            {% elif score >= 40 %}
+                                                <span class="badge bg-info">{{ "%.1f"|format(score) }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ "%.1f"|format(score) }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('analysis') and indicators_data[stock.ticker]['analysis'].get('macd_signals') %}
+                                            {% set macd_signals = indicators_data[stock.ticker]['analysis']['macd_signals'] %}
+                                            {% set proximity_type = macd_signals.get('proximity_type', 'no_proximity') %}
+                                            {% if proximity_type == 'golden_cross_proximity' %}
+                                                <strong class="text-warning">macd 골드크로스 근접</strong>
+                                            {% elif proximity_type == 'dead_cross_proximity' %}
+                                                <strong class="text-warning">macd 데드크로스 근접</strong>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('analysis') and indicators_data[stock.ticker]['analysis'].get('macd_signals') %}
+                                            {% set macd_signals = indicators_data[stock.ticker]['analysis']['macd_signals'] %}
+                                            {% if macd_signals.get('latest_crossover_type') %}
+                                                {% set crossover_type = macd_signals.get('latest_crossover_type', '') %}
+                                                <span class="crossover-tooltip {% if crossover_type == 'golden_cross' %}golden-cross{% elif crossover_type == 'dead_cross' %}dead-cross{% endif %}" 
+                                                      data-bs-toggle="tooltip" 
+                                                      data-bs-placement="top" 
+                                                      data-bs-html="true"
+                                                      title="<strong>크로스오버 타입:</strong> {{ crossover_type }}<br><strong>발생일:</strong> {{ macd_signals.get('latest_crossover_date', 'N/A') }}<br><strong>경과일:</strong> {{ macd_signals.get('days_since_crossover', 'N/A') }}일 전">
+                                                    {{ crossover_type }}<br>
+                                                    <small class="text-muted">{{ macd_signals.get('latest_crossover_date', '') }}</small><br>
+                                                    <small class="text-muted">{{ macd_signals.get('days_since_crossover', '') }}일 전</small>
+                                                </span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('analysis') and indicators_data[stock.ticker]['analysis'].get('ema_signals') %}
+                                            {% set ema_signals = indicators_data[stock.ticker]['analysis']['ema_signals'] %}
+                                            {% set proximity_type = ema_signals.get('proximity_type', 'no_proximity') %}
+                                            {% if proximity_type == 'golden_cross1_proximity' %}
+                                                <strong class="text-warning">골드크로스1 근접</strong>
+                                            {% elif proximity_type == 'golden_cross2_proximity' %}
+                                                <strong class="text-warning">골드크로스2 근접</strong>
+                                            {% elif proximity_type == 'golden_cross3_proximity' %}
+                                                <strong class="text-warning">골드크로스3 근접</strong>
+                                            {% elif proximity_type == 'dead_cross1_proximity' %}
+                                                <strong class="text-warning">데드크로스1 근접</strong>
+                                            {% elif proximity_type == 'dead_cross2_proximity' %}
+                                                <strong class="text-warning">데드크로스2 근접</strong>
+                                            {% elif proximity_type == 'dead_cross3_proximity' %}
+                                                <strong class="text-warning">데드크로스3 근접</strong>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('analysis') and indicators_data[stock.ticker]['analysis'].get('ema_signals') %}
+                                            {% set ema_signals = indicators_data[stock.ticker]['analysis']['ema_signals'] %}
+                                            {% if ema_signals.get('latest_crossover_type') %}
+                                                {% set crossover_type = ema_signals.get('latest_crossover_type', '') %}
+                                                <span class="crossover-tooltip {% if crossover_type == 'golden_cross' %}golden-cross{% elif crossover_type == 'dead_cross' %}dead-cross{% endif %}" 
+                                                      data-bs-toggle="tooltip" 
+                                                      data-bs-placement="top" 
+                                                      data-bs-html="true"
+                                                      title="<strong>크로스오버 타입:</strong> {{ crossover_type }}<br><strong>EMA 쌍:</strong> {{ ema_signals.get('crossover_pair', 'N/A') }}<br><strong>발생일:</strong> {{ ema_signals.get('latest_crossover_date', 'N/A') }}<br><strong>경과일:</strong> {{ ema_signals.get('days_since_crossover', 'N/A') }}일 전">
+                                                    {{ crossover_type }}<br>
+                                                    <small class="text-muted">{{ ema_signals.get('crossover_pair', '') }}</small><br>
+                                                    <small class="text-muted">{{ ema_signals.get('latest_crossover_date', '') }}</small><br>
+                                                    <small class="text-muted">{{ ema_signals.get('days_since_crossover', '') }}일 전</small>
+                                                </span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('analysis') %}
+                                            {{ indicators_data[stock.ticker]['analysis'].get('ema_array_order', '-') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('analysis') %}
+                                            {{ "{:+.2f}%".format(indicators_data[stock.ticker]['analysis'].get('close_gap_ema20', 0.0)) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('analysis') %}
+                                            {{ "{:+.2f}%".format(indicators_data[stock.ticker]['analysis'].get('close_gap_ema40', 0.0)) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:,.2f}".format(indicators_data[stock.ticker]['indicators'].ema5) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:,.2f}".format(indicators_data[stock.ticker]['indicators'].ema20) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:,.2f}".format(indicators_data[stock.ticker]['indicators'].ema40) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}".format(indicators_data[stock.ticker]['indicators'].macd_line) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}".format(indicators_data[stock.ticker]['indicators'].macd_signal) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}".format(indicators_data[stock.ticker]['indicators'].macd_histogram) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}".format(indicators_data[stock.ticker]['indicators'].rsi) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}".format(indicators_data[stock.ticker]['indicators'].stoch_k) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}".format(indicators_data[stock.ticker]['indicators'].stoch_d) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}%".format(indicators_data[stock.ticker]['indicators'].volume_ratio_5d) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}%".format(indicators_data[stock.ticker]['indicators'].volume_ratio_20d) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if indicators_data.get(stock.ticker) and indicators_data[stock.ticker].get('indicators') %}
+                                            {{ "{:.2f}%".format(indicators_data[stock.ticker]['indicators'].volume_ratio_40d) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>등록된 미국 주식이 없습니다.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="csvUploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-csv me-2"></i>CSV 파일 업로드
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="csvUploadForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="marketType" class="form-label">시장 구분</label>
+                        <select class="form-select" id="marketType" name="market_type" required>
+                            <option value="US">미국 주식 (US)</option>
+                            <option value="KOSPI">KOSPI</option>
+                            <option value="KOSDAQ">KOSDAQ</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">CSV 파일</label>
+                        <input type="file" class="form-control" id="csvFile" name="file" accept=".csv" required>
+                        <div class="form-text">
+                            CSV 파일은 티커(Symbol) 컬럼이 필요합니다. 회사명(Name) 컬럼은 선택사항입니다.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="listName" class="form-label">리스트명</label>
+                        <input type="text" class="form-control" id="listName" name="list_name" placeholder="예: 코스피 200" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">설명 (선택사항)</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>업로드
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 정렬 상태 관리
+let sortOrder = [];
+let currentSortDirection = 1; // 1: 오름차순, -1: 내림차순
+
+// 툴팁 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    // 모든 Bootstrap 툴팁 활성화 (회사명 + 크로스오버)
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            placement: 'top',
+            boundary: 'window',
+            trigger: 'hover',
+            html: true,
+            maxWidth: 300
+        });
+    });
+    
+    // 정렬 가능한 헤더에 클릭 이벤트 추가
+    initializeSorting();
+});
+
+function initializeSorting() {
+    const sortableHeaders = document.querySelectorAll('.sortable-header');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const columnIndex = this.cellIndex;
+            const columnType = this.dataset.sortType;
+            
+            // 이미 정렬 중인 컬럼인지 확인
+            const existingIndex = sortOrder.findIndex(item => item.columnIndex === columnIndex);
+            
+            if (existingIndex !== -1) {
+                // 이미 있는 경우 방향만 변경
+                sortOrder[existingIndex].direction *= -1;
+            } else {
+                // 새로운 정렬 조건으로 교체
+                sortOrder = [{
+                    columnIndex: columnIndex,
+                    columnType: columnType,
+                    direction: 1
+                }];
+            }
+            
+            // 테이블 정렬 실행
+            sortTable();
+            
+            // 헤더 스타일 업데이트
+            updateHeaderStyles();
+        });
+    });
+}
+
+function updateSortOrder(columnIndex, columnType) {
+    // 단일 정렬만 지원 - 기존 정렬 초기화
+    sortOrder = [];
+    
+    // 새로운 정렬 조건 추가
+    sortOrder.push({
+        columnIndex: columnIndex,
+        columnType: columnType,
+        direction: 1
+    });
+}
+
+function sortTable() {
+    // 현재 활성화된 테이블 찾기
+    const activeTable = document.querySelector('.stock-table:not([style*="display: none"])');
+    if (!activeTable) return;
+    
+    const tbody = activeTable.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    if (sortOrder.length === 0) return;
+    
+    rows.sort((a, b) => {
+        for (let sortCondition of sortOrder) {
+            const aValue = getCellValue(a.cells[sortCondition.columnIndex], sortCondition.columnType);
+            const bValue = getCellValue(b.cells[sortCondition.columnIndex], sortCondition.columnType);
+            
+            const comparison = compareValues(aValue, bValue, sortCondition.columnType);
+            if (comparison !== 0) {
+                return comparison * sortCondition.direction;
+            }
+        }
+        return 0;
+    });
+    
+    // 정렬된 행을 테이블에 다시 추가
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function getCellValue(cell, columnType) {
+    const text = cell.textContent.trim();
+    
+    switch (columnType) {
+        case 'ticker':
+            return text;
+        case 'company':
+            return text;
+        case 'number':
+            return parseFloat(text.replace(/[^\d.-]/g, '')) || 0;
+        case 'percent':
+            return parseFloat(text.replace(/[^\d.-]/g, '')) || 0;
+        case 'text':
+            return text;
+        default:
+            return text;
+    }
+}
+
+function compareValues(a, b, columnType) {
+    if (columnType === 'number' || columnType === 'percent') {
+        return a - b;
+    } else {
+        return a.localeCompare(b, 'ko');
+    }
+}
+
+function updateHeaderStyles() {
+    // 모든 헤더에서 정렬 표시 제거
+    document.querySelectorAll('.sortable-header').forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+    });
+    
+    // 현재 정렬 상태에 따라 스타일 적용
+    if (sortOrder.length > 0) {
+        const sortCondition = sortOrder[0];
+        const headers = document.querySelectorAll(`.sortable-header[data-sort-type="${sortCondition.columnType}"]`);
+        headers.forEach(header => {
+            const direction = sortCondition.direction > 0 ? 'asc' : 'desc';
+            header.classList.add(`sort-${direction}`);
+        });
+    }
+}
+
+function clearSorting() {
+    sortOrder = [];
+    updateHeaderStyles();
+}
+
+// 이메일 테스트 발송
+function sendTestEmail(event) {
+    event.preventDefault();
+    const form = document.getElementById('emailTestForm');
+    const formData = new FormData(form);
+    const to_email = formData.get('to_email');
+    const subject = formData.get('subject');
+    const html = formData.get('html');
+    const btn = form.querySelector('button[type="submit"]');
+    const resultBox = document.getElementById('emailTestResult');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>발송중...';
+    resultBox.style.display = 'none';
+    resultBox.className = 'alert';
+    fetch('/admin/email/test_send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to_email, subject, html })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            resultBox.className = 'alert alert-success';
+            resultBox.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+        } else {
+            resultBox.className = 'alert alert-danger';
+            resultBox.innerHTML = `<i class=\"fas fa-exclamation-circle me-2\"></i>오류: ${data.message}`;
+        }
+        resultBox.style.display = 'block';
+    })
+    .catch(err => {
+        resultBox.className = 'alert alert-danger';
+        resultBox.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>네트워크 오류가 발생했습니다.';
+        resultBox.style.display = 'block';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    });
+    return false;
+}
+
+function sendBulkEmail(event) {
+    event.preventDefault();
+    const form = document.getElementById('emailBulkForm');
+    const fd = new FormData(form);
+    const emailsRaw = fd.get('emails') || '';
+    const recipients = emailsRaw.split(',').map(e => e.trim()).filter(Boolean).map(e => ({ email: e }));
+    const subject = fd.get('subject');
+    const html = fd.get('html');
+    const btn = form.querySelector('button[type="submit"]');
+    const resultBox = document.getElementById('emailBulkResult');
+    const original = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>발송중...';
+    resultBox.style.display = 'none'; resultBox.className = 'alert';
+    fetch('/admin/email/bulk_send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipients, subject, html })
+    }).then(r => r.json()).then(data => {
+        if (data.success) { resultBox.className = 'alert alert-success'; resultBox.innerHTML = JSON.stringify(data.summary); }
+        else { resultBox.className = 'alert alert-danger'; resultBox.innerHTML = data.message; }
+        resultBox.style.display = 'block';
+    }).catch(() => {
+        resultBox.className = 'alert alert-danger'; resultBox.innerHTML = '네트워크 오류'; resultBox.style.display = 'block';
+    }).finally(() => { btn.disabled = false; btn.innerHTML = original; });
+    return false;
+}
+
+
+
+// 체크박스 관리 함수들
+function toggleSelectAll(market) {
+    let selectAllCheckbox;
+    let checkboxes;
+    
+    if (market === 'us') {
+        selectAllCheckbox = document.getElementById('selectAllUs');
+        checkboxes = document.querySelectorAll('.us-checkbox');
+    } else if (market === 'kospi') {
+        selectAllCheckbox = document.getElementById('selectAllKospi');
+        checkboxes = document.querySelectorAll('.kospi-checkbox');
+    } else if (market === 'kosdaq') {
+        selectAllCheckbox = document.getElementById('selectAllKosdaq');
+        checkboxes = document.querySelectorAll('.kosdaq-checkbox');
+    }
+    
+    if (selectAllCheckbox && checkboxes) {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+    }
+    
+    updateDeleteButton();
+}
+
+function updateDeleteButton() {
+    const checkedBoxes = document.querySelectorAll('.stock-checkbox:checked');
+    const deleteBtn = document.getElementById('deleteBtn');
+    
+    if (checkedBoxes.length > 0) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = `<i class="fas fa-trash me-2"></i>선택 삭제 (${checkedBoxes.length})`;
+    } else {
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-trash me-2"></i>선택 삭제';
+    }
+}
+
+// AI 분석 함수 - 리팩토링된 UnifiedMarketAnalysisService 사용
+function analyzeStock(ticker, market) {
+    if (!confirm(`"${ticker}" 종목에 대한 AI 분석을 실행하시겠습니까?\n\n일봉, 주봉, 월봉 차트를 생성하고 AI 분석을 수행합니다.`)) {
+        return;
+    }
+    
+    // 분석 버튼 비활성화
+    const analyzeBtn = event.target;
+    const originalText = analyzeBtn.innerHTML;
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>분석중...';
+    
+    // 새탭으로 열 때는 로딩 오버레이 불필요하므로 제거
+    
+    // 리팩토링된 UnifiedMarketAnalysisService 엔드포인트 사용
+    const analysisUrl = `/analysis/ai_analysis/${ticker}/${market}`;
+    const analysisWindow = window.open(analysisUrl, '_blank');
+    
+    // 새탭으로 열 때는 즉시 버튼 복원
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = originalText;
+}
+
+// 강제 데이터 다운로드 함수 - 리팩토링된 UnifiedDataService 사용
+function forceDataDownload() {
+    if (!confirm('모든 활성화된 주식의 데이터를 강제로 다운로드하시겠습니까?\n시간이 다소 소요될 수 있습니다.')) {
+        return;
+    }
+    
+    const btn = document.getElementById('forceDownloadBtn');
+    const status = document.getElementById('downloadStatus');
+    const message = document.getElementById('downloadMessage');
+    
+    // 버튼 비활성화 및 상태 표시
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>다운로드 중...';
+    status.style.display = 'block';
+    message.className = 'alert alert-info mb-0';
+    message.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>데이터 다운로드 중...';
+    
+    // 리팩토링된 UnifiedDataService 엔드포인트 사용
+    fetch('/admin/force_data_download', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            message.className = 'alert alert-success mb-0';
+            message.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+            
+            // 3초 후 페이지 새로고침
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        } else {
+            message.className = 'alert alert-danger mb-0';
+            message.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>오류: ${data.message}`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        message.className = 'alert alert-danger mb-0';
+        message.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>네트워크 오류가 발생했습니다.';
+    })
+    .finally(() => {
+        // 버튼 복원
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-download me-2"></i>강제 데이터 다운로드';
+        
+        // 5초 후 상태 메시지 숨김
+        setTimeout(() => {
+            status.style.display = 'none';
+        }, 5000);
+    });
+}
+
+// CSV 업로드 폼 처리 - 리팩토링된 UnifiedDataService 사용
+document.getElementById('csvUploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // 업로드 진행 표시
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>업로드 중...';
+    submitBtn.disabled = true;
+    
+    // 업로드 엔드포인트 수정: admin → stock
+    fetch('/stock/upload-csv', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 서버 응답 임시 정합성 대응
+        if (data && data.success === true) {
+            alert(data.message || '업로드 성공');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('csvUploadModal'));
+            if (modal) modal.hide();
+            location.reload();
+        } else if (data && typeof data.success === 'string') {
+            // 구버전(success 문자열) 대응
+            alert(data.success);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('csvUploadModal'));
+            if (modal) modal.hide();
+            location.reload();
+        } else if (data && data.error) {
+            alert('업로드 실패: ' + data.error);
+        } else if (data && data.message) {
+            alert('업로드 실패: ' + data.message);
+        } else {
+            alert('업로드 실패: 알 수 없는 응답');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('업로드 중 오류가 발생했습니다.');
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// 주가 데이터 갱신 함수 - 리팩토링된 UnifiedDataService 사용
+function refreshMarketData() {
+    if (!confirm('모든 주식의 주가 데이터를 갱신하시겠습니까? 시간이 소요될 수 있습니다.')) {
+        return;
+    }
+    
+    const btn = document.getElementById('refreshMarketDataBtn');
+    const status = document.getElementById('refreshStatus');
+    const message = document.getElementById('refreshMessage');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>갱신 중...';
+    status.style.display = 'block';
+    message.className = 'alert alert-info mb-0';
+    message.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>주가 데이터 갱신 중...';
+    
+    // 리팩토링된 UnifiedDataService 엔드포인트 사용
+    fetch('/admin/refresh_market_data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            message.className = 'alert alert-success mb-0';
+            message.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+            setTimeout(() => location.reload(), 3000);
+        } else {
+            message.className = 'alert alert-danger mb-0';
+            message.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>오류: ${data.message}`;
+        }
+    })
+    .catch(error => {
+        message.className = 'alert alert-danger mb-0';
+        message.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>네트워크 오류.';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>주가 데이터 갱신';
+        setTimeout(() => status.style.display = 'none', 5000);
+    });
+}
+
+// 페이지 로드 시 CSS 강제 적용
+document.addEventListener('DOMContentLoaded', function() {
+    // 모든 테이블 헤더에 스타일 적용
+    const allHeaders = document.querySelectorAll('.stock-table th');
+    allHeaders.forEach(header => {
+        header.style.backgroundColor = '#f8f9fa';
+        header.style.color = 'black';
+        header.style.fontSize = '0.8rem';
+        header.style.padding = '8px 4px';
+        header.style.textAlign = 'center';
+        header.style.whiteSpace = 'nowrap';
+        header.style.position = 'sticky';
+        header.style.top = '0';
+        header.style.zIndex = '10';
+        header.style.border = '1px solid #dee2e6';
+        header.style.fontWeight = 'normal';
+        header.style.boxShadow = 'none';
+    });
+    
+    // 고정 열 셀에도 스타일 적용 (CSS 너비 설정과 호환되도록 수정)
+    for (let i = 1; i <= 5; i++) {
+        const fixedCells = document.querySelectorAll(`.stock-table th:nth-child(${i}), .stock-table td:nth-child(${i})`);
+        fixedCells.forEach(cell => {
+            cell.style.position = 'sticky';
+            // CSS에서 설정한 너비를 고려한 left 위치 계산
+            let leftPosition = 0;
+            for (let j = 1; j < i; j++) {
+                if (j === 1) leftPosition += 50;  // 체크박스
+                else if (j === 2) leftPosition += 80;  // Ticker
+                else if (j === 3) leftPosition += 150; // Company name
+                else if (j === 4) leftPosition += 125;  // 종가
+                else if (j === 5) leftPosition += 125;  // 등락률
+                else if (j === 6) leftPosition += 80;  // AI 분석
+                else if (j === 7) leftPosition += 80; // 중요도 점수
+                else if (j === 8) leftPosition += 150; // MACD 크로스오버
+                else if (j === 9) leftPosition += 150; // 최근의 크로스 오버 MACD
+                else if (j === 10) leftPosition += 150; // EMA 크로스오버
+                else if (j === 11) leftPosition += 150; // 최근의 크로스 오버 이동평균선
+                else if (j === 12) leftPosition += 200; // 종가-EMA 배열
+                else if (j === 13) leftPosition += 100; // 종가-EMA20 gap
+                else if (j === 14) leftPosition += 80; // 종가-EMA40 gap
+                else if (j === 15) leftPosition += 80;  // EMA5일
+                else if (j === 16) leftPosition += 80;  // EMA20일
+                else if (j === 17) leftPosition += 80;  // EMA40일
+                else if (j === 18) leftPosition += 80;  // MACD
+                else if (j === 19) leftPosition += 80;  // MACD signal
+                else if (j === 20) leftPosition += 80;  // MACD histogram
+                else if (j === 21) leftPosition += 80;  // RSI
+                else if (j === 22) leftPosition += 80;  // stochastic %k
+                else if (j === 23) leftPosition += 80;  // stochastic %d
+                else if (j === 24) leftPosition += 80; // 5일 평균 거래량 대비
+                else if (j === 25) leftPosition += 80; // 20일 평균 거래량 대비
+                else if (j === 26) leftPosition += 80; // 40일 평균 거래량 대비
+            }
+            cell.style.left = leftPosition + 'px';
+            cell.style.zIndex = '10';
+            cell.style.backgroundColor = 'white';
+            cell.style.borderRight = (i === 5) ? '3px solid #007bff' : '2px solid #dee2e6';
+        });
+    }
+
+    // 브라우저 캐시 무효화
+    if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_RELOAD) {
+        console.log('페이지가 새로고침되었습니다. CSS를 강제로 적용합니다.');
+    }
+});
+
+// 주식 리스트 다운로드 함수 - 리팩토링된 UnifiedDataService 사용
+function downloadStockList() {
+    const currentMarket = document.querySelector('.badge.bg-success').textContent;
+    let marketType = 'US';
+    
+    if (currentMarket.includes('KOSPI')) {
+        marketType = 'KOSPI';
+    } else if (currentMarket.includes('KOSDAQ')) {
+        marketType = 'KOSDAQ';
+    }
+    
+    // 리팩토링된 UnifiedDataService 엔드포인트 사용
+    window.location.href = `/admin/download-stocks/${marketType}`;
+}
+
+// 신규: 현재 표시 중인 마켓의 전체 테이블을 CSV로 다운로드 (2025-08-16)
+function downloadMarketTableCsv() {
+    const market = '{{ current_market }}'; // 'us'|'kospi'|'kosdaq'
+    window.location.href = `/admin/download-market-table/${market}`;
+}
+
+// 선택된 주식 삭제 함수 - 리팩토링된 UnifiedDataService 사용
+function deleteSelectedStocks() {
+    const checkedBoxes = document.querySelectorAll('.stock-checkbox:checked');
+    const stockIds = Array.from(checkedBoxes).map(cb => cb.value);
+    
+    if (stockIds.length === 0) {
+        alert('삭제할 주식을 선택해주세요.');
+        return;
+    }
+    
+    if (!confirm(`선택한 ${stockIds.length}개의 주식을 삭제하시겠습니까?`)) {
+        return;
+    }
+    
+    // 리팩토링된 UnifiedDataService 엔드포인트 사용
+    fetch('/admin/delete-stocks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stock_ids: stockIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('삭제 실패: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+    });
+}
+</script>
+{% endblock %}

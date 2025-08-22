@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ ticker }} AI 분석</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        .chart-image {
+            transition: transform 0.2s;
+        }
+        .chart-image:hover {
+            transform: scale(1.05);
+        }
+        .modal-dialog {
+            max-width: 90%;
+        }
+        .modal-body img {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="mt-3">
+            <h5 class="text-white">AI 분석 진행 중...</h5>
+            <p class="text-white-50">차트 생성 및 AI 분석을 수행하고 있습니다.</p>
+            <p class="text-white-50">잠시만 기다려 주세요.</p>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- 페이지 제목 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>{{ ticker }} ({{ company_name }})의 상세분석
+                </h2>
+                <div>
+                    <span class="badge bg-primary fs-6">{{ market }}</span>
+                    <button type="button" class="btn btn-success ms-2" onclick="regenerateAnalysis()">
+                        <i class="fas fa-sync-alt me-1"></i>새로 생성
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="window.close()">
+                        <i class="fas fa-times me-1"></i>닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>오류 발생:</strong> {{ error }}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    
+    <!-- 차트 섹션 -->
+    {% if charts %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4><i class="fas fa-chart-line me-2"></i>차트 분석</h4>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% if charts.daily %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-calendar-day me-1"></i>일봉 차트</h6>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ charts.daily.base64 }}" 
+                         class="img-fluid chart-image" alt="일봉 차트" style="max-width: 100%; cursor: pointer;"
+                         onclick="showChartModal('일봉 차트', 'data:image/png;base64,{{ charts.daily.base64 }}')">
+                    <div class="mt-2">
+                        <small class="text-muted">파일: {{ charts.daily.filename }}</small>
+                        <br><small class="text-info">클릭하여 확대보기</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if charts.weekly %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-calendar-week me-1"></i>주봉 차트</h6>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ charts.weekly.base64 }}" 
+                         class="img-fluid chart-image" alt="주봉 차트" style="max-width: 100%; cursor: pointer;"
+                         onclick="showChartModal('주봉 차트', 'data:image/png;base64,{{ charts.weekly.base64 }}')">
+                    <div class="mt-2">
+                        <small class="text-muted">파일: {{ charts.weekly.filename }}</small>
+                        <br><small class="text-info">클릭하여 확대보기</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if charts.monthly %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-calendar-alt me-1"></i>월봉 차트</h6>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ charts.monthly.base64 }}" 
+                         class="img-fluid chart-image" alt="월봉 차트" style="max-width: 100%; cursor: pointer;"
+                         onclick="showChartModal('월봉 차트', 'data:image/png;base64,{{ charts.monthly.base64 }}')">
+                    <div class="mt-2">
+                        <small class="text-muted">파일: {{ charts.monthly.filename }}</small>
+                        <br><small class="text-info">클릭하여 확대보기</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if chart_error %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>차트 생성 오류:</strong> {{ chart_error }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+        <!-- 기술적 지표 표 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>기술적 지표
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- 개선된 HTML 테이블 -->
+                    <div style="background-color: white; padding: 10px; margin: 10px;">
+                        <table style="width: 100%; border-collapse: collapse; background-color: white; border: 1px solid #dee2e6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.6;">
+                            <thead>
+                                <tr style="background-color: #f8f9fa;">
+                                    <th style="border: 1px solid #dee2e6; padding: 8px; text-align: left; width: 35%;">지표명</th>
+                                    <th style="border: 1px solid #dee2e6; padding: 8px; text-align: left; width: 65%;">값</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- EMA 배열 -->
+                                <tr style="background-color: white;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>EMA 배열</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('analysis') and indicators_data[ticker]['analysis'].get('ema_array') %}
+                                            {{ indicators_data[ticker]['analysis']['ema_array']['full_array'] }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- 종가-EMA20 Gap -->
+                                <tr style="background-color: #f9f9f9;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>종가-EMA20 Gap</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% set a = indicators_data[ticker]['analysis'] if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('analysis') else None %}
+                                        {% if a is not none %}
+                                            {% set v = a.get('close_gap_ema20') if a.get('close_gap_ema20') is not none else a.get('gap_ema20') %}
+                                            {% if v is not none %}
+                                                {{ "%.2f"|format(v) }}%
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- 종가-EMA40 Gap -->
+                                <tr style="background-color: white;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>종가-EMA40 Gap</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% set a = indicators_data[ticker]['analysis'] if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('analysis') else None %}
+                                        {% if a is not none %}
+                                            {% set v = a.get('close_gap_ema40') if a.get('close_gap_ema40') is not none else a.get('gap_ema40') %}
+                                            {% if v is not none %}
+                                                {{ "%.2f"|format(v) }}%
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- RSI -->
+                                <tr style="background-color: #f9f9f9;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>RSI</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('indicators') %}
+                                            {{ "%.2f"|format(indicators_data[ticker]['indicators'].rsi) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- Stochastic %K -->
+                                <tr style="background-color: white;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>Stochastic %K</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('indicators') %}
+                                            {{ "%.2f"|format(indicators_data[ticker]['indicators'].stoch_k) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- Stochastic %D -->
+                                <tr style="background-color: #f9f9f9;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>Stochastic %D</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('indicators') %}
+                                            {{ "%.2f"|format(indicators_data[ticker]['indicators'].stoch_d) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- 5일 평균 거래량 대비 -->
+                                <tr style="background-color: white;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>5일 평균 거래량 대비</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('indicators') %}
+                                            {{ "%.2f"|format(indicators_data[ticker]['indicators'].volume_ratio_5d) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- 20일 평균 거래량 대비 -->
+                                <tr style="background-color: #f9f9f9;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>20일 평균 거래량 대비</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('indicators') %}
+                                            {{ "%.2f"|format(indicators_data[ticker]['indicators'].volume_ratio_20d) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <!-- 40일 평균 거래량 대비 -->
+                                <tr style="background-color: white;">
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;"><strong>40일 평균 거래량 대비</strong></td>
+                                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                                        {% if indicators_data and ticker in indicators_data and indicators_data[ticker] and indicators_data[ticker].get('indicators') %}
+                                            {{ "%.2f"|format(indicators_data[ticker]['indicators'].volume_ratio_40d) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI 분석 결과 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>AI 분석 결과
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if analysis_result %}
+                    <div class="analysis-content" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6;">
+                        {{ analysis_result }}
+                    </div>
+                    {% elif analysis_error %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>AI 분석 오류:</strong> {{ analysis_error }}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                        <p>AI 분석을 수행하고 있습니다...</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% endif %}
+</div>
+
+<style>
+.analysis-content {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-responsive {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.table td {
+    font-size: 0.875rem;
+}
+
+/* 로딩 오버레이 스타일 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-content {
+    text-align: center;
+    color: white;
+    max-width: 400px;
+    padding: 2rem;
+}
+
+.loading-content .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+.chart-image:hover {
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+</style>
+
+<!-- 차트 확대보기 모달 -->
+<div class="modal fade" id="chartModal" tabindex="-1" aria-labelledby="chartModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chartModalLabel">차트 확대보기</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalChartImage" src="" alt="차트" class="img-fluid" style="max-width: 100%;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" onclick="downloadChart()">다운로드</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 차트 모달 표시 함수
+function showChartModal(title, imageSrc) {
+    document.getElementById('chartModalLabel').textContent = title;
+    document.getElementById('modalChartImage').src = imageSrc;
+    new bootstrap.Modal(document.getElementById('chartModal')).show();
+}
+
+// 차트 다운로드 함수
+function downloadChart() {
+    const img = document.getElementById('modalChartImage');
+    const link = document.createElement('a');
+    link.download = 'chart.png';
+    link.href = img.src;
+    link.click();
+}
+
+// 로딩 오버레이 표시 함수
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+// 로딩 오버레이 숨김 함수
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+// 새로 생성 함수
+function regenerateAnalysis() {
+    if (confirm('새로운 AI 분석을 생성하시겠습니까?')) {
+        showLoading();
+        window.location.reload();
+    }
+}
+
+// 페이지 로드 시 자동 저장 완료 알림
+window.addEventListener('load', function() {
+    // 페이지 로드 완료 시 로딩 숨김
+    hideLoading();
+    
+    setTimeout(function() {
+        console.log('AI 분석 HTML 파일이 서버에 자동으로 저장되었습니다.');
+        console.log('저장 위치: static/analysis/ 폴더');
+    }, 1000);
+});
+
+// 페이지 로드 시작 시 로딩 표시
+document.addEventListener('DOMContentLoaded', function() {
+    // 페이지가 처음 로드될 때 로딩 표시
+    showLoading();
+});
+</script>
+
+<!-- Copyright Footer -->
+<footer class="bg-dark text-white text-center py-3 mt-5" style="position: relative; bottom: 0; width: 100%;">
+    <div class="container">
+        <p class="mb-0">&copy; 2025 WhatsNextStock.com. All rights reserved.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

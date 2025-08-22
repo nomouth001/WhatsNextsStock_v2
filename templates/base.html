@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if title %}{{ title }} - {% endif %}주식 뉴스레터 관리 시스템</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    {% block head %}{% endblock %}
+    
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .alert {
+            margin-bottom: 1rem;
+        }
+        .main-content {
+            min-height: calc(100vh - 120px);
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+            margin-top: auto;
+        }
+        
+        /* 주식 테이블 스타일 */
+        .stock-table {
+            font-size: 0.85rem;
+            table-layout: fixed; /* 고정 레이아웃으로 변경 */
+            width: 100vw !important;
+            min-width: 100vw !important;
+        }
+        
+        /* 모든 헤더를 데이터 칸과 동일한 스타일로 통일 */
+        .stock-table th {
+            background-color: #f8f9fa !important; /* 헤더 배경색 흰색에 가까운 색으로 고정 */
+            color: black !important;
+            font-size: 0.8rem !important;
+            padding: 8px 4px !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 1003 !important; /* 헤더 z-index를 가장 높게 설정 */
+            border: 1px solid #dee2e6 !important;
+            font-weight: normal !important;
+            box-shadow: none !important;
+        }
+        
+        .stock-table td {
+            padding: 6px 4px;
+            text-align: center;
+            vertical-align: middle;
+            background-color: white !important; /* 모든 셀 배경색을 흰색으로 고정 */
+            border: 1px solid #dee2e6 !important; /* 모든 셀 테두리 추가 */
+        }
+        
+        /* 체크박스 스타일 */
+        .stock-table input[type="checkbox"] {
+            cursor: pointer;
+            transform: scale(1.1);
+        }
+        
+        /* 고정 열 스타일 (첫 5개 컬럼) */
+        .stock-table th:nth-child(1),
+        .stock-table td:nth-child(1) {
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 1002 !important; /* 고정 열 데이터 셀 z-index를 헤더보다 낮게, 스크롤 열보다 높게 */
+            background-color: #f8f9fa !important; /* 배경색 흰색에 가까운 색으로 고정 */
+            min-width: 40px !important;
+            width: 40px !important;
+            border-right: 2px solid #dee2e6 !important; /* 구분선 강화*/
+        }
+        /* 개별 고정 열 헤더 z-index 조정 */
+        .stock-table th:nth-child(1) {
+            z-index: 1003 !important;
+        }
+
+        .stock-table th:nth-child(2),
+        .stock-table td:nth-child(2) {
+            position: sticky !important;
+            left: 40px !important;
+            z-index: 1002 !important;
+            background-color: white !important; /* 배경색 흰색 고정 */
+            min-width: 80px !important;
+            width: 80px !important;
+            border-right: 2px solid #dee2e6 !important;
+        }
+        .stock-table th:nth-child(2) {
+            z-index: 1003 !important;
+        }
+        .stock-table td:nth-child(2) {
+            color: #007bff !important;
+            font-weight: bold !important;
+        }
+
+        .stock-table th:nth-child(3),
+        .stock-table td:nth-child(3) {
+            position: sticky !important;
+            left: 120px !important;
+            z-index: 1002 !important;
+            background-color: white !important; /* 배경색 흰색 고정 */
+            min-width: 100px !important;
+            width: 100px !important;
+            border-right: 2px solid #dee2e6 !important;
+        }
+        .stock-table th:nth-child(3) {
+            z-index: 1003 !important;
+        }
+        .stock-table td:nth-child(3) {
+            text-align: left !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            cursor: default !important;
+        }
+
+        .stock-table th:nth-child(4),
+        .stock-table td:nth-child(4) {
+            position: sticky !important;
+            left: 220px !important;
+            z-index: 1002 !important;
+            background-color: white !important; /* 배경색 흰색 고정 */
+            min-width: 80px !important;
+            width: 80px !important;
+            border-right: 2px solid #dee2e6 !important;
+        }
+        .stock-table th:nth-child(4) {
+            z-index: 1003 !important;
+        }
+
+        .stock-table th:nth-child(5),
+        .stock-table td:nth-child(5) {
+            position: sticky !important;
+            left: 300px !important;
+            z-index: 1002 !important;
+            background-color: white !important; /* 배경색 흰색 고정 */
+            min-width: 80px !important;
+            width: 80px !important;
+            border-right: 3px solid #007bff !important; /* 강조 구분선 */
+            box-shadow: 3px 0 5px rgba(0,123,255,0.2) !important; /* 그림자 효과 */
+        }
+        .stock-table th:nth-child(5) {
+            z-index: 1003 !important;
+        }
+        
+        /* 스크롤 가능한 열들의 배경도 흰색으로 명확히 지정 */
+        .stock-table th:nth-child(n+6),
+        .stock-table td:nth-child(n+6) {
+            min-width: 120px !important;
+            background-color: white !important; /* 배경색 흰색 고정 */
+        }
+        
+        /* MACD histogram 폰트 통일 */
+        .stock-table td:nth-child(16) {
+            font-family: inherit !important;
+            font-size: inherit !important;
+        }
+        
+        /* 테이블 전체 너비 확장 */
+        .stock-table {
+            width: max-content;
+            min-width: 100%;
+        }
+        
+        /* 메인 컨테이너 여백 */
+        .container-fluid.main-content {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            max-width: none !important;
+            width: 100vw !important;
+        }
+        
+        /* 모바일 반응형 */
+        @media (max-width: 768px) {
+            .container-fluid.main-content {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+            
+            .navbar .container-fluid,
+            .footer .container-fluid {
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+            }
+            
+            .table-responsive {
+                max-height: 60vh;
+                overflow-x: visible !important;
+            }
+            
+            .stock-table {
+                font-size: 0.75rem;
+                width: 100vw !important;
+            }
+            
+            .stock-table th,
+            .stock-table td {
+                padding: 4px 2px;
+            }
+        }
+        
+        /* 테이블 컨테이너 스타일 제거 */
+        .table-responsive {
+            display: none;  /* 더 이상 사용하지 않음 */
+        }
+        
+        /* 테이블 전체 화면 사용 강제 */
+        .stock-list .table-responsive {
+            overflow-x: visible !important;
+            width: calc(100vw - 2rem) !important;
+            max-width: none !important;
+        }
+
+        /* 테이블 스크롤 동작 개선 */
+        .stock-table {
+            width: max-content !important;
+            min-width: 100vw !important;
+            table-layout: fixed !important;
+        }
+        
+        /* 행 hover 효과 */
+        .stock-table tbody tr:hover {
+            background-color: #f1f1f1 !important; /* hover 시 배경색 변경 */
+        }
+        
+        /* 스크롤 시 고정 열 배경 강화 (hover 효과) */
+        .stock-table tbody tr:hover td:nth-child(1),
+        .stock-table tbody tr:hover td:nth-child(2),
+        .stock-table tbody tr:hover td:nth-child(3),
+        .stock-table tbody tr:hover td:nth-child(4),
+        .stock-table tbody tr:hover td:nth-child(5) {
+            background-color: #e9ecef !important; /* hover 시 고정 열 배경색 변경 */
+            border-right: 2px solid #dee2e6 !important;
+            z-index: 1002 !important; /* hover 시에도 z-index 유지 */
+        }
+    </style>
+</head>
+<body class="d-flex flex-column">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid" style="padding-left: 1rem; padding-right: 1rem;">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>주식 뉴스레터
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_admin %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.home') }}">
+                                    <i class="fas fa-home me-1"></i>관리자 홈
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.subscribers_list') }}">
+                                    <i class="fas fa-users-cog me-1"></i>구독자 관리
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('user.home') }}">
+                                    <i class="fas fa-home me-1"></i>홈
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="newsletterDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-newspaper me-1"></i>뉴스레터
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/newsletter/auto">
+                                    <i class="fas fa-robot me-1"></i>자동 뉴스레터
+                                </a></li>
+                                <li><a class="dropdown-item" href="/newsletter/kospi">
+                                    <i class="fas fa-flag me-1"></i>KOSPI 뉴스레터
+                                </a></li>
+                                <li><a class="dropdown-item" href="/newsletter/kosdaq">
+                                    <i class="fas fa-chart-line me-1"></i>KOSDAQ 뉴스레터
+                                </a></li>
+                                <li><a class="dropdown-item" href="/newsletter/us">
+                                    <i class="fas fa-star me-1"></i>미국장 뉴스레터
+                                </a></li>
+                                <li><a class="dropdown-item" href="/newsletter/combined">
+                                    <i class="fas fa-globe me-1"></i>글로벌 뉴스레터
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/newsletter/history">
+                                    <i class="fas fa-history me-1"></i>뉴스레터 히스토리
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>{{ current_user.get_full_name() }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt me-1"></i>로그아웃
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i>로그인
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.register') }}">
+                                <i class="fas fa-user-plus me-1"></i>회원가입
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="container-fluid main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer mt-auto">
+        <div class="container-fluid" style="padding-left: 1rem; padding-right: 1rem;">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2025 주식 뉴스레터 관리 시스템</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="mb-0">Version 1.0</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

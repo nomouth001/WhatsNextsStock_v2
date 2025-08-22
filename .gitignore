@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+debug.log
+
+# Database
+*.db
+*.sqlite3
+
+# Temporary files
+_temp_archive/
+temp/
+tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Static files (generated)
+static/charts/
+static/analysis/
+static/data/US/
+static/data/KOSPI/
+static/data/KOSDAQ/
+
+# Records_Archives
+z_archives/
+z_archives/Cursor_Records/
+z_FormerCodes_20250716/
+
+# Flask session files
+flask_session/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/ #   D a t a b a s e   b a c k u p s   a n d   e x p o r t s 
+ 
+ m i g r a t i o n _ b a c k u p _ * . j s o n 
+ 
+ b a c k u p _ * . j s o n 
+ 
+ t e s t _ e x p o r t . j s o n 
+ 
+ 

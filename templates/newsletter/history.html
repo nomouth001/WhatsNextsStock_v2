@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}뉴스레터 히스토리{% endblock %}
+
+{% block head %}
+<style>
+  .newsletter-history .table-responsive {
+    display: block !important;
+    overflow-x: auto;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 newsletter-history">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        뉴스레터 히스토리
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if history %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>생성일시</th>
+                                        <th>뉴스레터 타입</th>
+                                        <th>시장</th>
+                                        <th>기간</th>
+                                        <th>요약</th>
+                                        <th>작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in history %}
+                                    <tr>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ item.generated_at.split('T')[0] }}<br>
+                                                {{ item.generated_at.split('T')[1][:5] }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            {% if item.newsletter_type == 'korean' %}
+                                                <span class="badge bg-primary">한국장</span>
+                                            {% elif item.newsletter_type == 'us' %}
+                                                <span class="badge bg-success">미국장</span>
+                                            {% elif item.newsletter_type == 'combined' %}
+                                                <span class="badge bg-info">통합</span>
+                                            {% elif item.newsletter_type == 'auto' %}
+                                                <span class="badge bg-warning">자동</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if item.market_type == 'KOSPI' %}
+                                                <span class="badge bg-danger">한국</span>
+                                            {% elif item.market_type == 'US' %}
+                                                <span class="badge bg-primary">미국</span>
+                                            {% elif item.market_type == 'COMBINED' %}
+                                                <span class="badge bg-info">통합</span>
+                                                {% if item.primary_market %}
+                                                    <br><small class="text-muted">주: {{ item.primary_market }}</small>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if item.timeframe == 'd' %}
+                                                <span class="badge bg-secondary">일봉</span>
+                                            {% elif item.timeframe == 'w' %}
+                                                <span class="badge bg-warning">주봉</span>
+                                            {% elif item.timeframe == 'm' %}
+                                                <span class="badge bg-info">월봉</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {% if item.summary %}
+                                                    {% set summary_preview = item.summary if item.summary is string else (item.summary | tojson) %}
+                                                    {{ summary_preview[:100] }}{% if summary_preview|length > 100 %}...{% endif %}
+                                                {% else %}
+                                                    요약 없음
+                                                {% endif %}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('newsletter.view_newsletter', newsletter_id=item.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>보기
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-success js-test-send" data-newsletter-id="{{ item.id }}">
+                                                <i class="fas fa-paper-plane me-1"></i>시험 발송
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger js-bulk-send" data-newsletter-id="{{ item.id }}">
+                                                <i class="fas fa-bullhorn me-1"></i>구독자 발송
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">아직 생성된 뉴스레터가 없습니다</h5>
+                            <p class="text-muted">뉴스레터를 생성하면 여기에 히스토리가 표시됩니다.</p>
+                            <a href="{{ url_for('newsletter.kospi_newsletter') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>뉴스레터 생성
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 시험 발송 모달 -->
+<div class="modal" tabindex="-1" id="testSendModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">저장된 뉴스레터 시험 발송</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="testSendForm" onsubmit="return submitTestSend(event)">
+          <input type="hidden" name="newsletter_id" />
+          <div class="mb-3">
+            <label class="form-label">수신자 이메일</label>
+            <input type="email" class="form-control" name="to_email" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">제목</label>
+            <input type="text" class="form-control" name="subject" required />
+          </div>
+          <button class="btn btn-primary" type="submit">발송</button>
+        </form>
+        <div id="testSendResult" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+ </div>
+
+<!-- 벌크 발송 모달 -->
+<div class="modal" tabindex="-1" id="bulkSendModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">구독자에게 발송</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkSendForm" onsubmit="return submitBulkSend(event)">
+          <input type="hidden" name="newsletter_id" />
+          <div class="mb-3">
+            <label class="form-label">제목</label>
+            <input type="text" class="form-control" name="subject" required />
+          </div>
+          <button class="btn btn-danger" type="submit">발송 시작</button>
+        </form>
+        <div id="bulkSendResult" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.js-test-send').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id = this.getAttribute('data-newsletter-id');
+      openTestSendModal(id);
+    });
+  });
+  document.querySelectorAll('.js-bulk-send').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id = this.getAttribute('data-newsletter-id');
+      openBulkSendModal(id);
+    });
+  });
+});
+
+function openTestSendModal(id){
+  const m = new bootstrap.Modal(document.getElementById('testSendModal'));
+  document.querySelector('#testSendForm [name="newsletter_id"]').value = id;
+  document.getElementById('testSendResult').style.display = 'none';
+  m.show();
+}
+function submitTestSend(e){
+  e.preventDefault();
+  const f = e.target;
+  const payload = {
+    newsletter_id: Number(f.newsletter_id.value),
+    to_email: f.to_email.value,
+    subject: f.subject.value
+  };
+  fetch('/admin/newsletter/test_send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
+    .then(r=>r.json()).then(res=>{
+      const el = document.getElementById('testSendResult');
+      el.style.display='block';
+      el.innerText = res.success ? '발송 성공' : '발송 실패: ' + (res.error||res.message||'');
+    }).catch(err=>{
+      const el = document.getElementById('testSendResult');
+      el.style.display='block';
+      el.innerText = '오류: ' + err;
+    });
+  return false;
+}
+
+function openBulkSendModal(id){
+  const m = new bootstrap.Modal(document.getElementById('bulkSendModal'));
+  document.querySelector('#bulkSendForm [name="newsletter_id"]').value = id;
+  document.getElementById('bulkSendResult').style.display = 'none';
+  m.show();
+}
+function submitBulkSend(e){
+  e.preventDefault();
+  const f = e.target;
+  const payload = {
+    newsletter_id: Number(f.newsletter_id.value),
+    subject: f.subject.value
+  };
+  fetch('/admin/newsletter/bulk_send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
+    .then(r=>r.json()).then(res=>{
+      const el = document.getElementById('bulkSendResult');
+      el.style.display='block';
+      if(res.success){
+        el.innerText = `총 ${res.summary.total}건, 성공 ${res.summary.sent}, 실패 ${res.summary.failed}`;
+      } else {
+        el.innerText = '발송 실패: ' + (res.error||res.message||'');
+      }
+    }).catch(err=>{
+      const el = document.getElementById('bulkSendResult');
+      el.style.display='block';
+      el.innerText = '오류: ' + err;
+    });
+  return false;
+}
+</script>
+{% endblock %} 

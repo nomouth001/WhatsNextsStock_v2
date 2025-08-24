@@ -364,10 +364,10 @@ class NewsletterClassificationService:
             header_html = """
                 <thead>
                     <tr>
-                        <th>종목코드</th>
-                        <th>종목명</th>
-                        <th style=\"width:120px\">현재가</th>
-                        <th style=\"width:140px\">상세분석</th>
+                        <th style=\"width:26%\">종목코드</th>
+                        <th style=\"width:44%\">종목명</th>
+                        <th style=\"width:15%; text-align:right;\">현재가</th>
+                        <th style=\"width:15%\">상세분석</th>
                     </tr>
                 </thead>
             """
@@ -375,10 +375,10 @@ class NewsletterClassificationService:
             header_html = """
                 <thead>
                     <tr>
-                        <th>종목코드</th>
-                        <th>종목명</th>
-                        <th style="width:120px">현재가</th>
-                        <th style="width:140px">상세분석</th>
+                        <th style=\"width:26%\">종목코드</th>
+                        <th style=\"width:44%\">종목명</th>
+                        <th style=\"width:15%; text-align:right;\">현재가</th>
+                        <th style=\"width:15%\">상세분석</th>
                     </tr>
                 </thead>
             """
@@ -413,6 +413,19 @@ class NewsletterClassificationService:
             
             # 시장 타입에 따른 URL 생성 (KOSPI/KOSDAQ/US 구분)
             market_url = self._get_analysis_url_market(ticker, market_type)
+
+            # 이메일에서도 동작하도록 절대 URL 생성
+            try:
+                # 환경 변수 또는 config에서 PUBLIC_BASE_URL 사용
+                import os
+                from flask import current_app
+                base_url = (getattr(current_app.config, 'get', None) and current_app.config.get('PUBLIC_BASE_URL')) or \
+                           os.environ.get('PUBLIC_BASE_URL') or 'https://whatsnextstock.com'
+                if base_url.endswith('/'):
+                    base_url = base_url[:-1]
+                absolute_link = f"{base_url}/analysis/ai_analysis/{ticker}/{market_url}"
+            except Exception:
+                absolute_link = f"/analysis/ai_analysis/{ticker}/{market_url}"
             
             if (market_type or '').upper() in ['KOSPI', 'KOSDAQ']:
                 # 한국장: 사용자 요청으로 시장구분 배지 제거
@@ -420,11 +433,11 @@ class NewsletterClassificationService:
                 # market_badge = self._get_market_badge(market_subtype)
                 html += f"""
                     <tr>
-                        <td><strong>{ticker}</strong></td>
-                        <td>{stock_name}</td>
-                        <td>{current_price}</td>
+                        <td style="white-space:nowrap; word-break:keep-all; text-align:left;"><strong>{ticker}</strong></td>
+                        <td style="white-space:nowrap; word-break:keep-all; text-align:left;">{stock_name}</td>
+                        <td style="text-align:right;">{current_price}</td>
                         <td>
-                            <a href="/analysis/ai_analysis/{ticker}/{market_url}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <a href="{absolute_link}" class="btn btn-sm btn-outline-primary" target="_blank">
                                 <i class="fas fa-chart-line"></i> 상세분석
                             </a>
                         </td>
@@ -434,11 +447,11 @@ class NewsletterClassificationService:
                 # 미국장: 시장구분 컬럼 없음
                 html += f"""
                     <tr>
-                        <td><strong>{ticker}</strong></td>
-                        <td>{stock_name}</td>
-                        <td>{current_price}</td>
+                        <td style="white-space:nowrap; word-break:keep-all; text-align:left;"><strong>{ticker}</strong></td>
+                        <td style="white-space:nowrap; word-break:keep-all; text-align:left;">{stock_name}</td>
+                        <td style="text-align:right;">{current_price}</td>
                         <td>
-                            <a href="/analysis/ai_analysis/{ticker}/{market_url}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <a href="{absolute_link}" class="btn btn-sm btn-outline-primary" target="_blank">
                                 <i class="fas fa-chart-line"></i> 상세분석
                             </a>
                         </td>

@@ -33,6 +33,10 @@ class Config:
     SENDGRID_SANDBOX_MODE = str(os.environ.get('SENDGRID_SANDBOX_MODE', 'False')).lower() in ('1','true','yes')
     SENDGRID_EVENT_PUBLIC_KEY = os.environ.get('SENDGRID_EVENT_PUBLIC_KEY')
 
+    # 퍼블릭 베이스 URL (절대 링크 생성용)
+    # 운영 기본값: https://whatsnextstock.com
+    PUBLIC_BASE_URL = os.environ.get('PUBLIC_BASE_URL', 'https://whatsnextstock.com')
+
 class DevelopmentConfig(Config):
     """개발 환경 설정"""
     DEBUG = True

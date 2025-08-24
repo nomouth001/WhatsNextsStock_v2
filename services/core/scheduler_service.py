@@ -69,7 +69,7 @@ def _send_combined_newsletter(app, primary_market: str, tz_name: str) -> None:
                     html_wrapped = email_service.render_newsletter_html(
                         title=subject,
                         recipient_name=(user.get_full_name() if user else '구독자'),
-                        body_html=data.get('html', ''),
+                        body_html=data.get('email_html') or data.get('html', ''),
                         unsubscribe_url=unsubscribe_url,
                         inline_css=True
                     )

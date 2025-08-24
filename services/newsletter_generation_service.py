@@ -161,7 +161,11 @@ class NewsletterGenerationService:
                 # 상단 카테고리 요약(시장별)
                 'kospi_category_summary_html': self._create_category_summary_html(kospi_results, 'kospi'),
                 'kosdaq_category_summary_html': self._create_category_summary_html(kosdaq_results, 'kosdaq'),
-                'us_category_summary_html': self._create_category_summary_html(us_results, 'us')
+                'us_category_summary_html': self._create_category_summary_html(us_results, 'us'),
+                # 이메일 전용: 스크립트 없는 고정형 본문 생성
+                'email_html': self._create_email_combined_body_html(
+                    kospi_results, kosdaq_results, us_results, combined_summary
+                )
             }
             
             # 데이터베이스에 저장 (통합 저장 서비스 사용)
@@ -176,6 +180,86 @@ class NewsletterGenerationService:
         except Exception as e:
             self.logger.error(f"통합 뉴스레터 생성 중 오류: {str(e)}")
             raise
+
+    def _create_email_combined_body_html(
+        self,
+        kospi_results: Dict,
+        kosdaq_results: Dict,
+        us_results: Dict,
+        combined_summary: Dict,
+    ) -> str:
+        """이메일 친화적 고정형 본문(자바스크립트 없이) 생성.
+        - 상단에 간단한 시장 요약 카드 3개
+        - 각 시장 섹션을 모두 세로로 노출
+        - 표 내용은 기존 테이블 생성 함수를 재사용
+        """
+        try:
+            # 시장별 테이블 HTML 생성 재사용
+            kospi_tables = "".join(self.classification_service.generate_newsletter_tables(kospi_results, 'kospi').values())
+            kosdaq_tables = "".join(self.classification_service.generate_newsletter_tables(kosdaq_results, 'kosdaq').values())
+            us_tables = "".join(self.classification_service.generate_newsletter_tables(us_results, 'US').values())
+
+            def safe_get(summary: Dict, market_key: str, key: str) -> int:
+                try:
+                    return int((summary.get(market_key) or {}).get(key, 0))
+                except Exception:
+                    return 0
+
+            # 간단 요약(전체 종목 수만 우선 표시; 확장 가능)
+            kospi_total = safe_get(combined_summary, 'kospi', 'total_stocks')
+            kosdaq_total = safe_get(combined_summary, 'kosdaq', 'total_stocks')
+            us_total = safe_get(combined_summary, 'us', 'total_stocks')
+
+            html = f"""
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', '맑은 고딕', sans-serif;">
+              <div style="margin:12px 0 16px 0;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;">
+                  <tr>
+                    <td style="width:33.33%; padding:6px;">
+                      <div style="border:1px solid #e5e7eb; border-radius:6px; padding:10px;">
+                        <div style="font-weight:600; margin-bottom:4px;">📈 KOSPI</div>
+                        <div style="color:#2563eb; font-size:18px; font-weight:700;">{kospi_total}</div>
+                        <div style="color:#6b7280; font-size:12px;">전체 종목</div>
+                      </div>
+                    </td>
+                    <td style="width:33.33%; padding:6px;">
+                      <div style="border:1px solid #e5e7eb; border-radius:6px; padding:10px;">
+                        <div style="font-weight:600; margin-bottom:4px;">📊 KOSDAQ</div>
+                        <div style="color:#2563eb; font-size:18px; font-weight:700;">{kosdaq_total}</div>
+                        <div style="color:#6b7280; font-size:12px;">전체 종목</div>
+                      </div>
+                    </td>
+                    <td style="width:33.33%; padding:6px;">
+                      <div style="border:1px solid #e5e7eb; border-radius:6px; padding:10px;">
+                        <div style="font-weight:600; margin-bottom:4px;">🇺🇸 US Market</div>
+                        <div style="color:#2563eb; font-size:18px; font-weight:700;">{us_total}</div>
+                        <div style="color:#6b7280; font-size:12px;">전체 종목</div>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <div style="margin-top:8px;">
+                <h3 style="margin:14px 0 8px 0;">📈 KOSPI 주식 분류</h3>
+                {kospi_tables}
+              </div>
+
+              <div style="margin-top:8px;">
+                <h3 style="margin:14px 0 8px 0;">📊 KOSDAQ 주식 분류</h3>
+                {kosdaq_tables}
+              </div>
+
+              <div style="margin-top:8px;">
+                <h3 style="margin:14px 0 8px 0;">🇺🇸 US Market 주식 분류</h3>
+                {us_tables}
+              </div>
+            </div>
+            """
+            return html
+        except Exception as e:
+            self.logger.error(f"이메일용 본문 생성 실패: {e}")
+            return ""
 
     def create_newsletter_html(self, classification_results: Dict, market: str, timeframe: str) -> str:
         """공개용: 라우트에서 사용하는 HTML 생성 래퍼"""

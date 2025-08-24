@@ -1088,11 +1088,31 @@ def newsletter_test_send():
         except Exception:
             pass
 
+        # 시험발송도 실제 발송과 동일 포맷 사용: 최신 생성 로직으로 email_html 우선 사용
+        try:
+            from services.newsletter_generation_service import NewsletterGenerationService
+            svc = NewsletterGenerationService()
+            generated = None
+            mkt = (content.market_type or '').upper()
+            ntype = (content.newsletter_type or '').lower()
+            tf = content.timeframe or 'd'
+            if mkt == 'COMBINED' or ntype == 'combined':
+                generated = svc.generate_combined_newsletter(timeframe=tf, primary_market=(content.primary_market or 'kospi'))
+            elif mkt == 'KOSPI' or ntype == 'korean':
+                generated = svc.generate_kospi_newsletter(timeframe=tf)
+            elif mkt == 'KOSDAQ':
+                generated = svc.generate_kosdaq_newsletter(timeframe=tf)
+            elif mkt == 'US' or ntype == 'us':
+                generated = svc.generate_us_newsletter(timeframe=tf)
+            body_html_effective = (generated or {}).get('email_html') or (generated or {}).get('html') or content.html_content
+        except Exception:
+            body_html_effective = content.html_content
+
         email_service = EmailService()
         html_wrapped = email_service.render_newsletter_html(
             title=subject,
             recipient_name=recipient_name,
-            body_html=content.html_content,
+            body_html=body_html_effective,
             unsubscribe_url=unsubscribe_url,
             inline_css=True
         )
@@ -1161,11 +1181,31 @@ def newsletter_bulk_send():
             except Exception:
                 continue
 
+        # 벌크 발송도 실제 포맷(email_html) 사용
+        try:
+            from services.newsletter_generation_service import NewsletterGenerationService
+            svc = NewsletterGenerationService()
+            generated = None
+            mkt = (content.market_type or '').upper()
+            ntype = (content.newsletter_type or '').lower()
+            tf = content.timeframe or 'd'
+            if mkt == 'COMBINED' or ntype == 'combined':
+                generated = svc.generate_combined_newsletter(timeframe=tf, primary_market=(content.primary_market or 'kospi'))
+            elif mkt == 'KOSPI' or ntype == 'korean':
+                generated = svc.generate_kospi_newsletter(timeframe=tf)
+            elif mkt == 'KOSDAQ':
+                generated = svc.generate_kosdaq_newsletter(timeframe=tf)
+            elif mkt == 'US' or ntype == 'us':
+                generated = svc.generate_us_newsletter(timeframe=tf)
+            body_html_effective = (generated or {}).get('email_html') or (generated or {}).get('html') or content.html_content
+        except Exception:
+            body_html_effective = content.html_content
+
         email_service = EmailService()
         summary = email_service.send_bulk_newsletter(
             recipients,
             subject,
-            content.html_content,
+            body_html_effective,
             newsletter_id=content.id,
             edition_date=content.generated_at,
             inline_css=True

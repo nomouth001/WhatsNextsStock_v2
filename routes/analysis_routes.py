@@ -100,6 +100,13 @@ def _get_file_created_dt_in_tz(path: str, tz: ZoneInfo) -> datetime | None:
         return None
 
 def _determine_market_phase(now_local: datetime, market: str) -> str:
+    # 주말(토/일)은 종일 장외로 처리
+    try:
+        if now_local.weekday() >= 5:
+            return 'post'
+    except Exception:
+        pass
+
     sh, sm, ch, cm = _get_market_hours(market)
     start_dt = now_local.replace(hour=sh, minute=sm, second=0, microsecond=0)
     close_dt = now_local.replace(hour=ch, minute=cm, second=0, microsecond=0)
@@ -135,11 +142,59 @@ def _try_return_cached_analysis_html(ticker: str, market: str) -> str | None:
             return None
 
         if phase in ('pre', 'open'):
-            is_fresh = created_dt >= prev_close_dt
+            is_fresh_phase = created_dt >= prev_close_dt
         else:  # post
-            is_fresh = created_dt > today_close_dt
+            is_fresh_phase = created_dt > today_close_dt
 
-        logging.info(f"[CACHE] created={created_dt} fresh={is_fresh}")
+        # 데이터 기반 신선도: 최신 CSV(mtime)보다 최신이어야 함 (±60초 허용)
+        latest_data_dt = None
+        try:
+            from services.market.file_management_service import FileManagementService
+            import os
+            fms = FileManagementService()
+            candidate_paths = []
+            # OHLCV d/w/m
+            for tf in ('d', 'w', 'm'):
+                p = fms.get_latest_file(ticker, 'ohlcv', market, tf)
+                if p:
+                    candidate_paths.append(p)
+            # INDICATORS d/w/m
+            for tf in ('d', 'w', 'm'):
+                p = fms.get_latest_file(ticker, 'indicators', market, tf)
+                if p:
+                    candidate_paths.append(p)
+            # CROSSINFO d
+            p = fms.get_latest_file(ticker, 'crossinfo', market, 'd')
+            if p:
+                candidate_paths.append(p)
+
+            latest_epoch = None
+            for p in candidate_paths:
+                try:
+                    mtime = os.path.getmtime(p)
+                    if (latest_epoch is None) or (mtime > latest_epoch):
+                        latest_epoch = mtime
+                except Exception:
+                    continue
+            if latest_epoch is not None:
+                from datetime import timezone
+                # fromtimestamp with tz to align with created_dt tz
+                latest_data_dt = datetime.fromtimestamp(latest_epoch, tz)
+        except Exception as data_fresh_err:
+            logging.warning(f"[CACHE] Data freshness probe failed: {data_fresh_err}")
+
+        # 60초 허용 오차
+        is_fresh_data = True
+        if latest_data_dt is not None:
+            try:
+                from datetime import timedelta as _td
+                is_fresh_data = created_dt >= (latest_data_dt - _td(seconds=60))
+            except Exception:
+                is_fresh_data = created_dt >= latest_data_dt
+
+        is_fresh = is_fresh_phase and is_fresh_data
+
+        logging.info(f"[CACHE] created={created_dt} latest_data_dt={latest_data_dt} phase_fresh={is_fresh_phase} data_fresh={is_fresh_data} fresh={is_fresh}")
 
         if not is_fresh:
             logging.info(f"[CACHE] Not fresh: created={created_dt} phase={phase} prev_close={prev_close_dt} today_close={today_close_dt}")

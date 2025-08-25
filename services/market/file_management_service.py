@@ -55,8 +55,27 @@ class FileManagementService:
             # 파일 찾기 (후보별 글롭 후 합치기)
             files: List[str] = []
             for cand in candidates:
-                pattern = os.path.join(csv_dir, f"{cand}_{data_type}_{timeframe}_*.csv")
-                files.extend(glob.glob(pattern))
+                # CrossInfo 파일명의 대소문자 혼재를 지원 (Ubuntu에서 대소문자 구분)
+                if data_type.lower() == 'crossinfo':
+                    patterns = [
+                        os.path.join(csv_dir, f"{cand}_crossinfo_{timeframe}_*.csv"),
+                        os.path.join(csv_dir, f"{cand}_CrossInfo_{timeframe}_*.csv"),
+                        os.path.join(csv_dir, f"{cand}_CROSSINFO_{timeframe}_*.csv"),
+                    ]
+                    for pattern in patterns:
+                        files.extend(glob.glob(pattern))
+                    # 추가 폴백: 디렉토리 나열 후 소문자 비교로 수동 필터링
+                    try:
+                        for fname in os.listdir(csv_dir):
+                            name_l = fname.lower()
+                            # '{cand}_crossinfo_{timeframe}_' 접두 + 임의의 접미 + .csv
+                            if name_l.startswith(f"{cand.lower()}_crossinfo_{timeframe}_") and name_l.endswith('.csv'):
+                                files.append(os.path.join(csv_dir, fname))
+                    except Exception:
+                        pass
+                else:
+                    pattern = os.path.join(csv_dir, f"{cand}_{data_type}_{timeframe}_*.csv")
+                    files.extend(glob.glob(pattern))
             
             if not files:
                 self.logger.debug(f"[{ticker}] {data_type}_{timeframe} CSV 파일을 찾을 수 없음 (candidates={candidates})")
